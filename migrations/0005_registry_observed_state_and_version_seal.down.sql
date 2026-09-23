@@ -16,9 +16,11 @@ $$;
 
 DROP TRIGGER IF EXISTS trg_acc_agent_versions_guard ON acc_agent_versions;
 DROP TRIGGER IF EXISTS trg_acc_agent_tools_observation_guard ON acc_agent_tools;
+DROP TRIGGER IF EXISTS trg_acc_agent_integrations_observation_guard ON acc_agent_integrations;
 DROP FUNCTION IF EXISTS acc_seal_version_on_use();
 DROP FUNCTION IF EXISTS acc_agent_versions_guard();
 DROP FUNCTION IF EXISTS acc_agent_tools_observation_guard();
+DROP FUNCTION IF EXISTS acc_agent_integrations_observation_guard();
 
 DROP INDEX IF EXISTS ux_acc_agent_versions_config;
 DROP INDEX IF EXISTS ix_acc_agent_tools_observed;

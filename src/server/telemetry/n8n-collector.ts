@@ -1,4 +1,4 @@
-import { parseTelemetry, type RunStatus, type TelemetryEnvelope } from '../../domain/telemetry.ts';
+import { LEVEL_A_SOURCE_PREFIX, parseTelemetry, type RunStatus, type TelemetryEnvelope } from '../../domain/telemetry.ts';
 import type { Queryable } from '../auth/db.ts';
 import { ingestTelemetry } from './ingest.ts';
 
@@ -63,7 +63,7 @@ export function toEnvelope(row: N8nExecutionRow, map: AgentWorkflowMap, organiza
   return parseTelemetry({
     schema_version: 1,
     organization,
-    source: 'n8n',
+    source: LEVEL_A_SOURCE_PREFIX, // coleta Nivel A: sem resumos e sem error_message (imposto no contrato E no banco)
     agent: map.agentSlug,
     version: { workflow_external_id: map.workflowId, ...(row.workflowVersionId ? { workflow_version_id: row.workflowVersionId } : {}) },
     correlation_id: `n8n:${row.id}`,

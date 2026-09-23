@@ -53,7 +53,8 @@ export default async function Lead360Page({
          { kind: KIND.user, id: it.responsibleUserId }]
       : []),
   ];
-  const catalog = await resolveEntities(db, LEAD_DATA_INTEGRATION, refs);
+  // nomes de pessoas (usuarios do Kommo) so para quem tem directory:read; sem ela o dado nem e consultado
+  const catalog = await resolveEntities(db, LEAD_DATA_INTEGRATION, refs, { directory: can(user.role, 'directory:read') });
   // dados pessoais exibidos => trilha de auditoria (deduplicada em 10 min)
   if (includeContent) {
     await recordEntityView(db, { actorId: user.id, entityType: 'lead', entityId: leadId, reason: 'lead_360' });

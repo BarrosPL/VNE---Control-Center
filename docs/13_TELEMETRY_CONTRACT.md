@@ -8,7 +8,8 @@ Código: `src/domain/telemetry.ts` (contrato), `src/server/telemetry/ingest.ts` 
 
 - **Agnóstico de agente.** O agente é um `slug` cadastrado (dado). Nada no contrato, no schema ou no serviço conhece um agente específico.
 - **Entidade genérica.** `entity = { type, id, lead_id? }`. `lead_id` é só atalho indexado quando a entidade é um lead do Kommo; IDs externos nunca são chaves internas.
-- **Sem PII e sem segredos.** Mensagens são referenciadas por id (`payload.message_ref` → `vne_mensagens.id`), nunca copiadas. O contrato rejeita chaves como `text`, `content`, `prompt`, `email`, `token`… em qualquer nível de `payload`/`metadata`; payload ≤ 8 KB; resumos ≤ 2000 caracteres. O banco repete os limites (CHECK).
+- **Sem PII e sem segredos.** Mensagens são referenciadas por id (`payload.message_ref` → `vne_mensagens.id`), nunca copiadas. O contrato rejeita chaves como `text`, `content`, `prompt`, `email`, `token`… em qualquer nível de `payload`/`metadata`; payload ≤ 8 KB; resumos ≤ 2000 caracteres. O banco impõe **o mesmo** (CHECK, erro 23514): `acc_jsonb_has_forbidden_keys` (mesma lista de chaves do Zod, verificada por teste, recursiva em objetos/arrays) em `payload`/`metadata`, e `acc_text_looks_personal` (e-mail/telefone) em `input_summary`, `output_summary`, `error_message`, `trigger_ref` e `end_reason`.
+- **Coleta Nível A não carrega texto livre.** Para `source` começando por `n8n.collector`: `input_summary`, `output_summary` e `error_message` são **NULL** (contrato e CHECK no banco); só o `error.code` técnico (`N8N_ERROR`, `N8N_CRASHED`) é gravado. Resumos só existirão quando houver política de sanitização aprovada, com outra `source`. Nenhum texto de mensagem, prompt, e-mail, telefone ou dado pessoal entra na telemetria.
 - **Idempotência.** `run.key` (ex.: id da execução no n8n) é único por agente; cada evento tem `event_key` (informado ou derivado de forma determinística) único por `source`. Reenviar o mesmo envelope não duplica nada.
 - **Append-only.** `acc_agent_events` rejeita UPDATE/DELETE/TRUNCATE (trigger, vale até para o dono). Runs têm estado terminal final.
 - **Versão imutável.** A primeira sessão/run/evento que referencia uma versão de agente a **sela** (migration 0005); depois disso a configuração daquela versão não é reescrita.
@@ -19,7 +20,7 @@ Código: `src/domain/telemetry.ts` (contrato), `src/server/telemetry/ingest.ts` 
 {
   "schema_version": 1,
   "organization": "vne",                 // slug da organização
-  "source": "n8n",                       // quem produziu (n8n, synthetic, ...)
+  "source": "n8n.collector",             // quem produziu (n8n.collector = Nível A, synthetic, ...)
   "agent": "<slug do agente>",           // dado cadastrado em acc_agents
   "version": {                           // como resolver agent_version_id (uma das formas)
     "config_hash": "<sha256>",           //   preferida

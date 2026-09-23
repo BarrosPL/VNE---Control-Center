@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Badge, EmptyState, Forbidden, InformationalNotice, PageHeader, Table, Td, Th } from '../../../components/ui.tsx';
 import { CRITICALITY_LABEL, STATUS_LABEL } from '../../../domain/labels.ts';
+import { can } from '../../../domain/rbac.ts';
 import { getDb } from '../../../server/db.ts';
 import { checkPermission } from '../../../server/guards.ts';
 import { listIntegrations } from '../../../server/queries/integrations.ts';
@@ -8,9 +9,9 @@ import { listIntegrations } from '../../../server/queries/integrations.ts';
 export const dynamic = 'force-dynamic';
 
 export default async function IntegrationsPage() {
-  const { allowed } = await checkPermission('integrations:read');
+  const { user, allowed } = await checkPermission('integrations:read');
   if (!allowed) return <Forbidden permission="integrations:read" />;
-  const items = await listIntegrations(getDb());
+  const items = await listIntegrations(getDb(), { directory: can(user.role, 'directory:read') });
 
   return (
     <>

@@ -20,10 +20,19 @@ const slug = z.string().regex(/^[a-z][a-z0-9_.-]{1,63}$/);
 const source = z.string().regex(/^[a-z][a-z0-9_.-]{1,40}$/);
 const kind = z.string().regex(/^[a-z][a-z0-9_]{1,40}$/);
 const ts = z.string().datetime({ offset: true }).transform((s) => new Date(s));
-const summary = z.string().max(2000);
+/** Texto livre com cara de dado pessoal (espelha acc_text_looks_personal no banco): e-mail ou 9+ digitos. */
+export function looksPersonal(t: string): boolean {
+  return /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(t) || /(\+?\d[\s().-]?){9,}/.test(t);
+}
+const PERSONAL_MSG = 'texto livre com dado pessoal (e-mail/telefone/documento) e proibido';
+const freeText = (max: number) => z.string().max(max).refine((t) => !looksPersonal(t), PERSONAL_MSG);
+const summary = freeText(2000);
+
+/** Fonte da coleta Nivel A (somente-leitura do n8n): NAO grava textos livres ate haver politica de sanitizacao. */
+export const LEVEL_A_SOURCE_PREFIX = 'n8n.collector';
 
 /** Chaves proibidas em qualquer nivel de payload/metadata (PII e segredos). */
-const FORBIDDEN_KEY = /^(text|texto|content|conteudo|body|message_text|message_body|prompt|system_prompt|completion|password|senha|secret|token|api[_-]?key|authorization|cookie|email|phone|telefone)$/i;
+export const FORBIDDEN_KEY = /^(text|texto|content|conteudo|body|message_text|message_body|prompt|system_prompt|completion|password|senha|secret|token|api[_-]?key|authorization|cookie|email|phone|telefone)$/i;
 export function findForbiddenKeys(value: unknown, path = ''): string[] {
   if (Array.isArray(value)) return value.flatMap((v, i) => findForbiddenKeys(v, `${path}[${i}]`));
   if (value && typeof value === 'object') {
@@ -87,7 +96,7 @@ export const telemetryEnvelope = z
     run: z.object({
       key: z.string().min(1).max(200), // ex.: id da execucao no n8n
       trigger_type: z.enum(TRIGGER_TYPES),
-      trigger_ref: z.string().max(200).optional(),
+      trigger_ref: freeText(200).optional(),
       started_at: ts,
       completed_at: ts.optional(),
       status: z.enum(RUN_STATUSES).optional(),
@@ -100,7 +109,8 @@ export const telemetryEnvelope = z
         output_tokens: z.number().int().min(0).optional(),
         estimated_cost: z.number().min(0).optional(),
       }).optional(),
-      error: z.object({ code: z.string().max(64), message: z.string().max(1000).optional() }).optional(),
+      // message: SOMENTE tecnica/sanitizada (sem e-mail/telefone); vazia na coleta Nivel A
+      error: z.object({ code: z.string().max(64), message: freeText(1000).optional() }).optional(),
       metadata: boundedRecord,
     }),
     events: z.array(eventInput).max(200).default([]),
@@ -108,6 +118,9 @@ export const telemetryEnvelope = z
   .superRefine((e, ctx) => {
     if (e.session && !e.entity) ctx.addIssue({ code: 'custom', message: 'session exige entity' });
     const r = e.run;
+    if (e.source.startsWith(LEVEL_A_SOURCE_PREFIX) && (r.input_summary != null || r.output_summary != null || r.error?.message != null)) {
+      ctx.addIssue({ code: 'custom', message: 'coleta Nivel A nao grava input_summary, output_summary nem error.message' });
+    }
     const terminal = r.status && r.status !== 'running';
     if (terminal && !r.completed_at) ctx.addIssue({ code: 'custom', message: 'run terminal exige completed_at' });
     if (!terminal && r.completed_at) ctx.addIssue({ code: 'custom', message: 'completed_at exige status terminal' });

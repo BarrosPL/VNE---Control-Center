@@ -15,7 +15,12 @@ prefixo evitam colisão com `public.agents`/`agent_*` do n8n. A aplicação usar
 - `apply` em transação por migration, advisory lock, checksum anti-drift (`acc_migrations`).
 - `down` desfaz só a última migration e recusa se as tabelas tiverem linhas (`--force` explícito).
   Migrations de seed marcam `-- @allow-data` no `.down.sql`.
-- `up` é somente aditivo (testado estaticamente: sem DROP/TRUNCATE/DELETE/ALTER TABLE).
+- `up` é **aditivo**: proibidos DROP, TRUNCATE, DELETE e qualquer alteração destrutiva. `ALTER TABLE ... ADD`
+  (coluna, constraint) é permitido, **somente em tabelas `acc_*`**, e é o mecanismo de evolução das 0005–0007
+  (ex.: colunas `observed_*`, procedência de versão). Proibido em `up`: `DROP`, `RENAME`, `ALTER COLUMN`,
+  `SET NOT NULL/DEFAULT/DATA TYPE`, `TYPE`. Nunca se altera `vne_*` nem tabelas do n8n. Verificado estaticamente em
+  `tests/migrations.test.ts`. A prova de que a mudança é segura para o que já existe é o ensaio em cópia de produção
+  (`npm run rehearse:prod`) + rollback que preserva dados.
 
 ## D-004 — Integridade
 - FKs `RESTRICT` (sem cascade → sem hard delete de dados auditáveis).
@@ -135,3 +140,19 @@ Sessoes/runs/eventos genericos (entity_type/entity_id, lead_id como atalho), ide
 
 ## D-022 - Testes no mesmo Postgres da producao e CI sem deploy
 embedded-postgres fixado em 17.10.0-beta.17 (producao roda 17.10). CI em .github/workflows/ci.yml: static, database, e2e e agregador; sem segredos, sem deploy. Lição: codigo novo que le schema novo exige migrations antes do deploy; servidor de desenvolvimento ligado a producao so apos as migrations (npm run demo para ver o schema novo localmente).
+
+## D-023 - Anti-PII enforçado no banco E no contrato (migration 0007, hardening final)
+Antes só o Zod barrava PII; o banco limitava apenas o tamanho do JSON. Agora o banco impõe o mesmo (defesa em profundidade; o contrato Zod continua sendo a primeira barreira):
+- `acc_jsonb_has_forbidden_keys(jsonb)` rejeita, em qualquer profundidade (objetos e arrays), chaves proibidas em `acc_agent_events.payload`, `acc_agent_runs.metadata` e `acc_agent_sessions.metadata` (CHECK, erro 23514). A lista de chaves é a MESMA do Zod (`FORBIDDEN_KEY` em src/domain/telemetry.ts); um teste compara as duas expressões e uma bateria de sondas SQL x Zod.
+- `acc_text_looks_personal(text)` rejeita e-mail e sequências que parecem telefone em `input_summary`, `output_summary`, `error_message`, `trigger_ref` e `end_reason`.
+- **Coleta Nível A** (`source` começando por `n8n.collector`): `input_summary = NULL`, `output_summary = NULL` e `error_message = NULL`, por CHECK no banco e por regra no contrato. Só o `error_code` técnico (`N8N_ERROR`, `N8N_CRASHED`) é gravado. Resumos e mensagem de erro só existirão com uma política de sanitização aprovada (e outra `source`). Nenhum texto de mensagem, prompt, e-mail, telefone ou dado pessoal entra na telemetria.
+- Limite: heurística de padrão, não detector completo de PII. Por isso a regra estrutural (Nível A sem texto livre) é a garantia principal.
+
+## D-024 - Observação x política também em integrações (migration 0005, hardening final)
+`acc_agent_tools` e `acc_agent_integrations` têm guardas equivalentes. Grupo OBSERVAÇÃO: `observed_state, observed_at, observed_source, absent_since`. Grupo POLÍTICA: tools = `permission_mode, approval_required, configuration`; integrações = `criticality, required, configuration`. Um único UPDATE não pode alterar os dois grupos (erro `POLICY_UNCHANGED_BY_OBSERVATION`, SQLSTATE 23001); cada grupo isolado é permitido, e INSERT define ambos. Testado para cada par observação x política.
+
+## D-025 - Privacidade do diretório: permissão `directory:read`
+Nomes de usuários internos do CRM (`entity_kind` em `DIRECTORY_KINDS`, hoje `user`) só saem do backend para quem tem `directory:read` (specialist, manager e admin; viewer não). Pipeline e etapa seguem visíveis pela permissão atual. A restrição é aplicada na camada de consulta: o resolvedor nem consulta o banco por tipos de diretório sem a permissão (placeholder "Restrito ao seu perfil", sem nome e sem ID), `listCatalog`, `countCatalogByKind`, `findCatalogGaps` e a contagem em `listIntegrations` excluem esses tipos. O parâmetro de acesso é obrigatório (sem valor padrão): esquecer é erro de tipo, e ausência de permissão é fail-closed.
+
+## D-026 - 0005 e 0007 editadas no lugar
+As migrations 0005 e 0007 foram ajustadas no hardening final **sem** criar 0008 porque nunca foram aplicadas em produção (produção está em 0004) e nenhuma cópia local depende do checksum antigo. Depois de aplicadas em qualquer ambiente compartilhado, mudanças passam a exigir migration nova (o runner recusa drift de checksum).

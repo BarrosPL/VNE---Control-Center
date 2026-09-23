@@ -5,6 +5,12 @@
 /** Integracao (acc_integrations.code) dona dos IDs de lead das tabelas vne_*. */
 export const LEAD_DATA_INTEGRATION = 'kommo';
 
+/**
+ * Tipos de entidade do catalogo que sao DIRETORIO DE PESSOAS (nomes de pessoas internas). So saem do backend
+ * para quem tem a permissao `directory:read`; para os demais o dado nem e consultado.
+ */
+export const DIRECTORY_KINDS: readonly string[] = ['user'];
+
 /** Tipos de entidade (acc_integration_entities.entity_kind) usados pelas telas de lead. */
 export const KIND = { pipeline: 'pipeline', status: 'status', user: 'user' } as const;
 

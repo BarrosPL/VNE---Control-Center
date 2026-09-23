@@ -28,14 +28,18 @@ ALTER TABLE acc_agent_integrations
 
 CREATE INDEX ix_acc_agent_tools_observed ON acc_agent_tools (agent_id, observed_state);
 
--- Defesa em profundidade: observar NUNCA muda a politica. Um UPDATE que altera o estado observado
--- nao pode, no mesmo comando, alterar permission_mode/approval_required (e vice-versa).
+-- Defesa em profundidade: OBSERVAR nunca muda a POLITICA (e vice-versa). Dois grupos de colunas, separados:
+--   observacao (fato lido do workflow): observed_state, observed_at, observed_source, absent_since
+--   politica (decisao do Control Center): tools => permission_mode, approval_required, configuration
+--                                         integracoes => criticality, required, configuration
+-- Um mesmo UPDATE nao pode alterar colunas dos DOIS grupos. (INSERT nao e afetado: nasce com os dois.)
 CREATE FUNCTION acc_agent_tools_observation_guard() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
-  IF (NEW.observed_state, NEW.absent_since) IS DISTINCT FROM (OLD.observed_state, OLD.absent_since)
+  IF (NEW.observed_state, NEW.observed_at, NEW.observed_source, NEW.absent_since)
+       IS DISTINCT FROM (OLD.observed_state, OLD.observed_at, OLD.observed_source, OLD.absent_since)
      AND (NEW.permission_mode, NEW.approval_required, NEW.configuration)
-         IS DISTINCT FROM (OLD.permission_mode, OLD.approval_required, OLD.configuration) THEN
+       IS DISTINCT FROM (OLD.permission_mode, OLD.approval_required, OLD.configuration) THEN
     RAISE EXCEPTION 'POLICY_UNCHANGED_BY_OBSERVATION: observar o workflow nao altera a politica da tool'
       USING ERRCODE = 'restrict_violation';
   END IF;
@@ -44,6 +48,22 @@ END;
 $$;
 CREATE TRIGGER trg_acc_agent_tools_observation_guard BEFORE UPDATE ON acc_agent_tools
   FOR EACH ROW EXECUTE FUNCTION acc_agent_tools_observation_guard();
+
+CREATE FUNCTION acc_agent_integrations_observation_guard() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF (NEW.observed_state, NEW.observed_at, NEW.observed_source, NEW.absent_since)
+       IS DISTINCT FROM (OLD.observed_state, OLD.observed_at, OLD.observed_source, OLD.absent_since)
+     AND (NEW.criticality, NEW.required, NEW.configuration)
+       IS DISTINCT FROM (OLD.criticality, OLD.required, OLD.configuration) THEN
+    RAISE EXCEPTION 'POLICY_UNCHANGED_BY_OBSERVATION: observar o workflow nao altera a politica da integracao'
+      USING ERRCODE = 'restrict_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER trg_acc_agent_integrations_observation_guard BEFORE UPDATE ON acc_agent_integrations
+  FOR EACH ROW EXECUTE FUNCTION acc_agent_integrations_observation_guard();
 
 -- (b) Versoes: procedencia e selagem ----------------------------------------------------------
 

@@ -30,7 +30,7 @@ try {
   try {
     if (command === 'gaps') {
       await client.query('BEGIN READ ONLY');
-      const gaps = await findCatalogGaps(client, typeof flags.integration === 'string' ? flags.integration : LEAD_DATA_INTEGRATION);
+      const gaps = await findCatalogGaps(client, typeof flags.integration === 'string' ? flags.integration : LEAD_DATA_INTEGRATION, { directory: true });
       await client.query('ROLLBACK');
       const byKind = {};
       for (const g of gaps) (byKind[g.kind] ??= []).push(`${g.externalId}(${g.seenIn})`);

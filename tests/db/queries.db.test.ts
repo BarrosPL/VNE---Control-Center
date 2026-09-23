@@ -99,7 +99,7 @@ describe('queries de leitura (como role acc_app)', () => {
   });
 
   it('listIntegrations lista dependentes e nunca expoe metadata de segredos', async () => {
-    const items = await listIntegrations(t.app);
+    const items = await listIntegrations(t.app, { directory: true });
     const kommo = items.find((i) => i.code === 'kommo')!;
     expect(kommo.agents.length).toBe(reg.agents.length);
     expect(kommo.toolCount).toBeGreaterThan(0);

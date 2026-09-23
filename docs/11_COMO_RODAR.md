@@ -61,8 +61,14 @@ npm run db:registry:apply     # aplica (idempotente; não sobrescreve estados de
 ```
 
 Edite `registry/vne.registry.json` para cadastrar/atualizar agentes, tools e integrações. Em destino
-remoto exige `--confirm-host=<host>` e aprovação prévia. Requer as migrations 0003/0004 aplicadas
-(a importação grava auditoria).
+remoto exige `--confirm-host=<host>` e aprovação prévia. Dependências de migration:
+
+- Registro **v1** (schema 1): migrations 0003/0004 (a importação grava auditoria).
+- Registro **v2** (schema 2: versões com `config_hash`/`source_revision`, estado observado de tools e integrações) **depende da migration 0005**. Sem ela o importador e as telas de agente falham (`column ... observed_state does not exist`).
+- Catálogo de integrações (`db:catalog:*`, nomes no Lead 360): migration 0006.
+- Telemetria (`/live`, timeline do Lead 360, coletor n8n): migration 0007.
+
+Ordem obrigatória em qualquer ambiente: **migrations → role/grants → registro → código**. O código novo lê colunas novas; nunca suba a aplicação antes das migrations. Catálogo e telemetria degradam com segurança (tabela ausente = "indisponível"), o registro v2 não.
 
 ## Demonstracao local (sem tocar em producao)
 
@@ -87,3 +93,7 @@ npm run rehearse:prod             # ENSAIO local: copia (leitura) o registro de 
 
 `.github/workflows/ci.yml` roda typecheck, testes unitarios, testes de banco, testes de migrations, build e smoke, sem deploy e sem segredos.
 `npm run test:all` executa localmente o mesmo conjunto.
+
+## Privacidade do diretório
+
+Nomes de usuários internos do CRM só aparecem para perfis com a permissão `directory:read` (specialist, manager, admin). O visualizador vê etapas e funis, mas usuários aparecem como "Restrito ao seu perfil" (sem nome e sem ID).

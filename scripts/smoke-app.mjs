@@ -327,6 +327,29 @@ try {
   for (const p of ['/live', sophiaPath, '/integrations/kommo/catalog']) assert.equal((await get(p, vs2.token)).status, 200, p);
   ok('visualizador acessa as telas de leitura novas (RBAC de leitura)');
 
+  // ---- privacidade do diretorio: viewer nao recebe nomes de usuarios internos (directory:read) ----
+  {
+    const NAMES = /Atendente Demo (A|B)/;
+    const leadV = await (await get('/leads/1001', vs2.token)).text();
+    assert.doesNotMatch(leadV, NAMES, 'viewer nao deve receber nome de usuario no Lead 360');
+    assert.match(leadV, /Funil de Demonstração/); // pipeline/status continuam visiveis
+    assert.match(leadV, /Em qualificação \(demo\)/);
+    assert.match(leadV, /restrit/i); // marcador de restrito no lugar do nome
+    const listV = await (await get('/leads', vs2.token)).text();
+    assert.doesNotMatch(listV, NAMES);
+    assert.match(listV, /Funil de Demonstração/);
+    const catV = await (await get('/integrations/kommo/catalog', vs2.token)).text();
+    assert.doesNotMatch(catV, NAMES, 'viewer nao deve ver usuarios no catalogo');
+    assert.doesNotMatch(catV, />user</, 'viewer nao deve ver nem a contagem/linhas do tipo user');
+    assert.match(catV, /Funil de Demonstração/);
+    assert.match(catV, /restritos ao seu perfil/);
+    const intV = await (await get('/integrations', vs2.token)).text();
+    assert.ok(intV.includes('3 entidade(s)'), 'viewer: contagem sem os usuarios do diretorio');
+    // quem tem directory:read continua vendo
+    assert.match(await (await get('/integrations/kommo/catalog', session.token)).text(), NAMES);
+  }
+  ok('viewer NAO recebe nomes de usuarios (Lead 360, lista, catalogo); admin recebe; pipeline/status seguem visiveis');
+
   res = await get('/login', session.token);
   assert.equal(res.status, 307);
   assert.equal(new URL(res.headers.get('location'), base).pathname, '/');

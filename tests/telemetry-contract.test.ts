@@ -127,6 +127,17 @@ describe('mapeamento das execucoes do n8n (coletor somente-leitura)', () => {
     expect(JSON.stringify(e)).not.toMatch(/texto|content|prompt/i);
   });
 
+  it('Nivel A: source n8n.collector, sem resumos e sem error.message (so o codigo do erro)', () => {
+    const ok = toEnvelope({ id: 7, workflowId: 'wf1', status: 'error', mode: 'webhook', startedAt: at(-5 * minute), stoppedAt: at(-4 * minute), workflowVersionId: null }, map, 'vne')!;
+    expect(ok.source).toBe('n8n.collector');
+    expect(ok.run.input_summary).toBeUndefined();
+    expect(ok.run.output_summary).toBeUndefined();
+    expect(ok.run.error).toEqual({ code: 'N8N_ERROR' });
+    const wire = JSON.parse(JSON.stringify(ok));
+    expect(() => parseTelemetry({ ...wire, run: { ...wire.run, input_summary: 'x' } })).toThrow(/Nivel A/);
+    expect(() => parseTelemetry({ ...wire, run: { ...wire.run, error: { code: 'X', message: 'x' } } })).toThrow(/Nivel A/);
+  });
+
   it('execucao em andamento gera run running; sem startedAt e ignorada', () => {
     const r = toEnvelope({ id: 1, workflowId: 'wf1', status: 'running', mode: 'trigger', startedAt: at(-1 * minute), stoppedAt: null, workflowVersionId: null }, map, 'vne')!;
     expect(r.run.status).toBeUndefined();

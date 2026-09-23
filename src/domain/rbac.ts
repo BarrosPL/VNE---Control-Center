@@ -14,6 +14,7 @@ export const PERMISSIONS = [
   'entities:read', // Lead 360 / Entity 360
   'entities:control', // takeover humano, devolver para IA
   'conversations:read', // conteudo das mensagens (dados pessoais): menor privilegio
+  'directory:read', // nomes de pessoas do diretorio das integracoes (ex.: usuarios internos do Kommo)
   'requests:read',
   'requests:respond',
   'requests:assign', // transferir / escalar
@@ -45,6 +46,7 @@ const specialist: readonly Permission[] = [
   'requests:respond',
   'entities:control',
   'conversations:read',
+  'directory:read',
   'knowledge:write',
 ];
 const manager: readonly Permission[] = [

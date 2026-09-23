@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Badge, Card, EmptyState, Forbidden, PageHeader, Table, Td, Th } from '../../../../../components/ui.tsx';
 import { LEAD_DATA_INTEGRATION } from '../../../../../domain/data-sources.ts';
 import { formatDateTime } from '../../../../../domain/labels.ts';
+import { can } from '../../../../../domain/rbac.ts';
 import { findCatalogGaps, listCatalog } from '../../../../../server/catalog/resolver.ts';
 import { getDb } from '../../../../../server/db.ts';
 import { checkPermission } from '../../../../../server/guards.ts';
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 const CODE = /^[a-z][a-z0-9_.]{1,63}$/;
 
 export default async function CatalogPage({ params }: { params: Promise<{ code: string }> }) {
-  const { allowed } = await checkPermission('integrations:read');
+  const { user, allowed } = await checkPermission('integrations:read');
   if (!allowed) return <Forbidden permission="integrations:read" />;
   const { code } = await params;
   if (!CODE.test(code)) notFound();
@@ -20,12 +21,14 @@ export default async function CatalogPage({ params }: { params: Promise<{ code: 
   const exists = await db.query(`SELECT name FROM acc_integrations WHERE code = $1 AND environment = 'production'`, [code]);
   if (!exists.rows[0]) notFound();
 
-  const entities = await listCatalog(db, code);
+  // entidades de diretorio (pessoas) excluidas NA CONSULTA para quem nao tem directory:read
+  const access = { directory: can(user.role, 'directory:read') };
+  const entities = await listCatalog(db, code, access);
   // o relatorio de IDs sem nome so faz sentido para a integracao dona dos IDs de vne_*
   let gaps = null;
   if (code === LEAD_DATA_INTEGRATION) {
     try {
-      gaps = await findCatalogGaps(db, code);
+      gaps = await findCatalogGaps(db, code, access);
     } catch {
       gaps = null;
     }
@@ -43,6 +46,11 @@ export default async function CatalogPage({ params }: { params: Promise<{ code: 
         subtitle="Nomes das entidades externas (pipelines, etapas, usuários…). Usado para exibir nomes em vez de IDs. Não contém segredos."
       />
 
+      {!access.directory && (
+        <p role="note" className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Nomes de pessoas do diretório são restritos ao seu perfil e não são exibidos (nem contados).
+        </p>
+      )}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Resumo do catálogo">
           {entities.length === 0 ? (

@@ -4,11 +4,16 @@ import { join } from 'node:path';
 import { applyAppRole } from '../../scripts/lib/app-role.mjs';
 import { parseRegistry } from '../../src/domain/registry.ts';
 import { importCatalog, parseCatalogFile } from '../../src/server/catalog/importer.ts';
-import { entityLabel, findCatalogGaps, listCatalog, resolveEntities } from '../../src/server/catalog/resolver.ts';
+import type { Queryable } from '../../src/server/auth/db.ts';
+import {
+  RESTRICTED_LABEL, countCatalogByKind, entityLabel, findCatalogGaps, listCatalog, resolveEntities,
+} from '../../src/server/catalog/resolver.ts';
 import { importRegistry } from '../../src/server/registry/importer.ts';
 import { startTestDb, type TestDb } from './helpers.ts';
 
 let t: TestDb;
+const D = { directory: true }; // perfil COM directory:read (specialist+)
+const V = { directory: false }; // perfil SEM directory:read (viewer)
 const fixture = (f: string) => readFileSync(join(__dirname, '..', 'fixtures', f), 'utf8');
 const n = async (sql: string, p?: unknown[]) => Number((await t.owner.query(sql, p)).rows[0].n);
 
@@ -83,7 +88,7 @@ describe('importacao do catalogo (como role acc_app)', () => {
     f.entities = f.entities.filter((e) => e.id !== '76077492'); // some do arquivo
     expect(await run(f)).toMatchObject({ deactivated: 1 });
     expect(await n(`SELECT count(*)::int n FROM acc_integration_entities WHERE external_id='76077492' AND NOT is_active`)).toBe(1);
-    const map = await resolveEntities(t.app, 'kommo', [{ kind: 'status', id: 76077492 }]);
+    const map = await resolveEntities(t.app, 'kommo', [{ kind: 'status', id: 76077492 }], D);
     expect(map.get('status:76077492')).toMatchObject({ name: 'Entrada', isActive: false });
     expect(entityLabel(map, 'status', 76077492)).toMatchObject({ text: 'Entrada', resolved: true, inactive: true });
   });
@@ -112,10 +117,10 @@ describe('resolvedor (lote, fallback e seguranca)', () => {
   it('resolve varios IDs em UMA consulta e devolve o ID quando nao ha nome (nunca inventa)', async () => {
     const map = await resolveEntities(t.app, 'kommo', [
       { kind: 'pipeline', id: 9907372 }, { kind: 'status', id: '76077496' }, { kind: 'status', id: 999 }, { kind: 'user', id: null },
-    ]);
+    ], D);
     expect(entityLabel(map, 'pipeline', 9907372)).toMatchObject({ text: 'Funil Sintetico', resolved: true });
     expect(entityLabel(map, 'status', 76077496)).toMatchObject({ text: 'Qualificacao', resolved: true });
-    expect(entityLabel(map, 'status', 999)).toEqual({ text: 'ID 999', resolved: false, id: '999', inactive: false });
+    expect(entityLabel(map, 'status', 999)).toEqual({ text: 'ID 999', resolved: false, id: '999', inactive: false, restricted: false });
     expect(entityLabel(map, 'user', null)).toMatchObject({ text: '—', resolved: false });
     expect(entityLabel(undefined, 'status', 5)).toMatchObject({ text: 'ID 5', resolved: false });
   });
@@ -123,20 +128,20 @@ describe('resolvedor (lote, fallback e seguranca)', () => {
   it('entradas maliciosas ou invalidas sao ignoradas sem erro', async () => {
     const map = await resolveEntities(t.app, 'kommo', [
       { kind: "status'; DROP TABLE acc_integration_entities;--", id: 1 }, { kind: 'status', id: 'x'.repeat(200) }, { kind: 'Status', id: 1 },
-    ]);
+    ], D);
     expect(map.size).toBe(0);
     expect(await n('SELECT count(*)::int n FROM acc_integration_entities')).toBe(4);
-    expect((await resolveEntities(t.app, "kommo' OR '1'='1", [{ kind: 'user', id: 555 }])).size).toBe(0);
-    expect((await resolveEntities(t.app, 'kommo', [])).size).toBe(0);
+    expect((await resolveEntities(t.app, "kommo' OR '1'='1", [{ kind: 'user', id: 555 }], D)).size).toBe(0);
+    expect((await resolveEntities(t.app, 'kommo', [], D)).size).toBe(0);
   });
 
   it('nao vaza entre integracoes: o mesmo ID em outra integracao nao resolve', async () => {
-    expect((await resolveEntities(t.app, 'google_calendar', [{ kind: 'user', id: 555 }])).size).toBe(0);
+    expect((await resolveEntities(t.app, 'google_calendar', [{ kind: 'user', id: 555 }], D)).size).toBe(0);
   });
 
   it('limita o numero de referencias por consulta (protecao contra abuso)', async () => {
     const many = Array.from({ length: 5000 }, (_, i) => ({ kind: 'status', id: i }));
-    const map = await resolveEntities(t.app, 'kommo', many);
+    const map = await resolveEntities(t.app, 'kommo', many, D);
     expect(map.size).toBeLessThanOrEqual(500);
   });
 
@@ -149,14 +154,14 @@ describe('resolvedor (lote, fallback e seguranca)', () => {
       ],
     });
     expect(await run(f)).toMatchObject({ created: 2 });
-    const map = await resolveEntities(t.app, 'kommo', [{ kind: 'status', id: 1 }]);
+    const map = await resolveEntities(t.app, 'kommo', [{ kind: 'status', id: 1 }], D);
     expect(['Ganho', 'Ganho B']).toContain(map.get('status:1')!.name);
   });
 });
 
 describe('relatorio de IDs sem nome e listagem', () => {
   it('lista IDs observados em vne_* que ainda nao tem nome, com contagem', async () => {
-    const gaps = await findCatalogGaps(t.app, 'kommo');
+    const gaps = await findCatalogGaps(t.app, 'kommo', D);
     const key = (k: string, id: string) => gaps.find((g) => g.kind === k && g.externalId === id);
     // catalogados => nao aparecem
     expect(key('pipeline', '9907372')).toBeUndefined();
@@ -170,13 +175,13 @@ describe('relatorio de IDs sem nome e listagem', () => {
   it('sem catalogo, todos os IDs observados aparecem; a consulta e somente leitura', async () => {
     await t.owner.query('ALTER TABLE acc_integration_entities DISABLE TRIGGER USER');
     const before = await n('SELECT count(*)::int n FROM acc_integration_entities');
-    expect((await findCatalogGaps(t.app, 'integracao_sem_catalogo')).length).toBeGreaterThan(3);
+    expect((await findCatalogGaps(t.app, 'integracao_sem_catalogo', D)).length).toBeGreaterThan(3);
     expect(await n('SELECT count(*)::int n FROM acc_integration_entities')).toBe(before);
     await t.owner.query('ALTER TABLE acc_integration_entities ENABLE TRIGGER USER');
   });
 
   it('listCatalog devolve hierarquia e estado', async () => {
-    const list = await listCatalog(t.app, 'kommo');
+    const list = await listCatalog(t.app, 'kommo', D);
     const st = list.find((e) => e.kind === 'status' && e.externalId === '76077496')!;
     expect(st).toMatchObject({ parentKind: 'pipeline', parentExternalId: '9907372', isActive: true, source: 'manual' });
     expect(st.syncedAt).toBeTruthy();
@@ -192,5 +197,78 @@ describe('restricoes do banco', () => {
     await expect(ins('entity_kind, external_id, name, source', ['status', '1', '   ', 'manual'])).rejects.toMatchObject({ code: '23514' });
     await expect(ins('entity_kind, external_id, name, source', ['status', '1', 'x', 'importado'])).rejects.toMatchObject({ code: '23514' });
     await expect(ins('entity_kind, external_id, name, source', ['user', '555', 'duplicado', 'manual'])).rejects.toMatchObject({ code: '23505' });
+  });
+});
+
+describe('privacidade do diretorio: perfil SEM directory:read nunca recebe nomes de usuarios', () => {
+  // dois usuarios com nomes ficticios distintivos, para procurar vazamento por texto
+  const NAMES = ['Ana Diretorio Secreta', 'Beto Diretorio Secreto'];
+  beforeAll(async () => {
+    await run(file({
+      complete_kinds: [],
+      entities: [
+        { kind: 'pipeline', id: 9907372, name: 'Funil Sintetico' },
+        { kind: 'status', id: 76077496, name: 'Qualificacao', parent: { kind: 'pipeline', id: 9907372 } },
+        { kind: 'user', id: 555, name: NAMES[0] },
+        { kind: 'user', id: 444, name: NAMES[1] },
+      ],
+    }));
+  });
+  const leaks = (v: unknown) => NAMES.filter((nm) => JSON.stringify(v, (_k, x) => (x instanceof Map ? [...x] : x)).includes(nm));
+
+  it('resolveEntities: viewer recebe apenas o marcador; o nome real nunca chega ao backend do chamador', async () => {
+    const refs = [{ kind: 'user', id: 555 }, { kind: 'user', id: 444 }, { kind: 'pipeline', id: 9907372 }, { kind: 'status', id: 76077496 }];
+    const viewer = await resolveEntities(t.app, 'kommo', refs, V);
+    expect(leaks(viewer)).toEqual([]);
+    expect(viewer.get('user:555')).toMatchObject({ name: RESTRICTED_LABEL, restricted: true });
+    expect(entityLabel(viewer, 'user', 555)).toEqual({ text: RESTRICTED_LABEL, resolved: false, id: null, inactive: false, restricted: true });
+    // pipeline/status continuam visiveis conforme a permissao atual
+    expect(entityLabel(viewer, 'pipeline', 9907372)).toMatchObject({ text: 'Funil Sintetico', resolved: true });
+    expect(entityLabel(viewer, 'status', 76077496)).toMatchObject({ text: 'Qualificacao', resolved: true });
+    // com directory:read os nomes aparecem
+    const admin = await resolveEntities(t.app, 'kommo', refs, D);
+    expect(entityLabel(admin, 'user', 555)).toMatchObject({ text: NAMES[0], resolved: true });
+    expect(leaks(admin).sort()).toEqual([...NAMES].sort());
+  });
+
+  it('o dado NEM E CONSULTADO: sem permissao, o tipo de diretorio nao aparece na query nem nos parametros', async () => {
+    const seen: { sql: string; params?: unknown[] }[] = [];
+    const spy: Queryable = { query: (sql, params) => { seen.push({ sql, params }); return t.owner.query(sql, params) as ReturnType<Queryable['query']>; } };
+    await resolveEntities(spy, 'kommo', [{ kind: 'user', id: 555 }, { kind: 'user', id: 444 }], V);
+    expect(seen).toHaveLength(0); // so usuarios + sem permissao => nenhuma consulta ao banco
+    await resolveEntities(spy, 'kommo', [{ kind: 'user', id: 555 }, { kind: 'status', id: 76077496 }], V);
+    expect(seen).toHaveLength(1);
+    expect(seen[0].params?.[1]).toEqual(['status']); // 'user' ficou de fora dos tipos consultados
+    expect(seen[0].params?.[2]).toEqual(['76077496']);
+  });
+
+  it('falha FECHADA: acesso ausente ou incompleto e tratado como sem permissao', async () => {
+    const m = await resolveEntities(t.app, 'kommo', [{ kind: 'user', id: 555 }], {} as never);
+    expect(leaks(m)).toEqual([]);
+    expect(m.get('user:555')?.restricted).toBe(true);
+    expect(leaks(await listCatalog(t.app, 'kommo', {} as never))).toEqual([]);
+  });
+
+  it('listCatalog: viewer nao recebe entidades de usuario; specialist+ recebe', async () => {
+    const viewer = await listCatalog(t.app, 'kommo', V);
+    expect(viewer.some((e) => e.kind === 'user')).toBe(false);
+    expect(viewer.some((e) => e.kind === 'pipeline')).toBe(true);
+    expect(leaks(viewer)).toEqual([]);
+    const admin = await listCatalog(t.app, 'kommo', D);
+    expect(admin.filter((e) => e.kind === 'user')).toHaveLength(2);
+    expect(leaks(admin).sort()).toEqual([...NAMES].sort());
+  });
+
+  it('contagem por tipo: viewer nem sabe quantos usuarios existem', async () => {
+    expect(await countCatalogByKind(t.app, 'kommo', V)).not.toHaveProperty('user');
+    expect(await countCatalogByKind(t.app, 'kommo', D)).toMatchObject({ user: 2 });
+  });
+
+  it('relatorio de IDs sem nome: viewer nao recebe IDs de usuarios', async () => {
+    const viewer = await findCatalogGaps(t.app, 'integracao_sem_catalogo', V);
+    expect(viewer.some((g) => g.kind === 'user')).toBe(false);
+    expect(viewer.some((g) => g.kind === 'status')).toBe(true); // pipeline/status seguem no relatorio
+    const admin = await findCatalogGaps(t.app, 'integracao_sem_catalogo', D);
+    expect(admin.some((g) => g.kind === 'user')).toBe(true);
   });
 });

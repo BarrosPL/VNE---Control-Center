@@ -3,11 +3,48 @@
 -- com lead_id apenas como atalho. Nao toca em vne_* nem no n8n. Nenhum produtor esta conectado ainda.
 --
 -- Principios: (1) idempotencia por chave do produtor (run_key/event_key); (2) sem blobs: resumos e
--- payloads limitados; (3) sem PII copiada: referenciar mensagens por id, nao guardar o texto; (4) eventos
--- append-only; (5) uma versao de agente referenciada aqui passa a ser imutavel (selagem, migration 0005).
+-- payloads limitados; (3) sem PII: referenciar mensagens por id, nunca guardar o texto. Defesa em
+-- PROFUNDIDADE: o contrato (src/domain/telemetry.ts) valida na borda E o banco repete as regras por CHECK:
+-- (a) chaves sensiveis proibidas em payload/metadata (em qualquer profundidade); (b) e-mail/telefone
+-- proibidos em textos livres; (c) coleta Nivel A (source 'n8n.collector') NAO grava resumos nem
+-- error_message; (4) eventos append-only; (5) uma versao referenciada aqui passa a ser imutavel (0005).
 
 -- Pre-requisito das FKs compostas (agente e organizacao coerentes)
 ALTER TABLE acc_agents ADD CONSTRAINT uq_acc_agents_id_org UNIQUE (id, organization_id);
+
+-- Funcoes de defesa (puras). A lista de chaves ESPELHA FORBIDDEN_KEY em src/domain/telemetry.ts; um teste
+-- garante a equivalencia entre as duas implementacoes.
+CREATE FUNCTION acc_jsonb_has_forbidden_keys(doc jsonb) RETURNS boolean
+LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+  k text;
+  v jsonb;
+BEGIN
+  IF doc IS NULL THEN RETURN false; END IF;
+  IF jsonb_typeof(doc) = 'object' THEN
+    FOR k, v IN SELECT key, value FROM jsonb_each(doc) LOOP
+      IF k ~* '^(text|texto|content|conteudo|body|message_text|message_body|prompt|system_prompt|completion|password|senha|secret|token|api[_-]?key|authorization|cookie|email|phone|telefone)$' THEN
+        RETURN true;
+      END IF;
+      IF acc_jsonb_has_forbidden_keys(v) THEN RETURN true; END IF;
+    END LOOP;
+  ELSIF jsonb_typeof(doc) = 'array' THEN
+    FOR v IN SELECT value FROM jsonb_array_elements(doc) LOOP
+      IF acc_jsonb_has_forbidden_keys(v) THEN RETURN true; END IF;
+    END LOOP;
+  END IF;
+  RETURN false;
+END;
+$$;
+
+-- Texto livre com cara de dado pessoal: e-mail ou sequencia de 9+ digitos (telefone/documento).
+CREATE FUNCTION acc_text_looks_personal(t text) RETURNS boolean
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT t IS NOT NULL AND (
+    t ~* '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}'
+    OR t ~ '(\+?\d[\s().-]?){9,}'
+  )
+$$;
 
 -- 1. Taxonomia de eventos (dado, nao enum: estender = INSERT em nova migration, sem alterar schema) -----
 
@@ -46,8 +83,8 @@ CREATE TABLE acc_agent_sessions (
   started_at timestamptz NOT NULL DEFAULT now(),
   last_activity_at timestamptz NOT NULL DEFAULT now(),
   ended_at timestamptz,
-  end_reason text CHECK (end_reason IS NULL OR length(end_reason) <= 200),
-  metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (pg_column_size(metadata) <= 16384),
+  end_reason text CHECK (end_reason IS NULL OR (length(end_reason) <= 200 AND NOT acc_text_looks_personal(end_reason))),
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (pg_column_size(metadata) <= 16384 AND NOT acc_jsonb_has_forbidden_keys(metadata)),
   created_at timestamptz NOT NULL DEFAULT now(),
   FOREIGN KEY (agent_id, organization_id) REFERENCES acc_agents (id, organization_id),
   FOREIGN KEY (agent_version_id, agent_id) REFERENCES acc_agent_versions (id, agent_id),
@@ -76,7 +113,7 @@ CREATE TABLE acc_agent_runs (
   -- chave de idempotencia do produtor (ex.: id da execucao no n8n). Reenvios nao duplicam.
   run_key text CHECK (run_key IS NULL OR length(run_key) BETWEEN 1 AND 200),
   trigger_type text NOT NULL CHECK (trigger_type IN ('message', 'schedule', 'webhook', 'manual', 'system', 'other')),
-  trigger_ref text CHECK (trigger_ref IS NULL OR length(trigger_ref) <= 200),
+  trigger_ref text CHECK (trigger_ref IS NULL OR (length(trigger_ref) <= 200 AND NOT acc_text_looks_personal(trigger_ref))),
   status text NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'succeeded', 'failed', 'cancelled', 'timed_out')),
   source text NOT NULL CHECK (source ~ '^[a-z][a-z0-9_.-]{1,40}$'),
   -- nem toda execucao conhece a entidade (ex.: execucoes observadas so pelo n8n)
@@ -86,8 +123,8 @@ CREATE TABLE acc_agent_runs (
   model_provider text,
   model_name text,
   -- RESUMOS curtos gerados por maquina (nunca o texto de mensagens/prompts)
-  input_summary text CHECK (input_summary IS NULL OR length(input_summary) <= 2000),
-  output_summary text CHECK (output_summary IS NULL OR length(output_summary) <= 2000),
+  input_summary text CHECK (input_summary IS NULL OR (length(input_summary) <= 2000 AND NOT acc_text_looks_personal(input_summary))),
+  output_summary text CHECK (output_summary IS NULL OR (length(output_summary) <= 2000 AND NOT acc_text_looks_personal(output_summary))),
   started_at timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz,
   duration_ms integer CHECK (duration_ms IS NULL OR duration_ms >= 0),
@@ -95,15 +132,18 @@ CREATE TABLE acc_agent_runs (
   output_tokens integer CHECK (output_tokens IS NULL OR output_tokens >= 0),
   estimated_cost numeric(12, 6) CHECK (estimated_cost IS NULL OR estimated_cost >= 0),
   error_code text CHECK (error_code IS NULL OR length(error_code) <= 64),
-  error_message text CHECK (error_message IS NULL OR length(error_message) <= 1000),
-  metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (pg_column_size(metadata) <= 16384),
+  error_message text CHECK (error_message IS NULL OR (length(error_message) <= 1000 AND NOT acc_text_looks_personal(error_message))),
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (pg_column_size(metadata) <= 16384 AND NOT acc_jsonb_has_forbidden_keys(metadata)),
   created_at timestamptz NOT NULL DEFAULT now(),
   FOREIGN KEY (session_id, agent_id) REFERENCES acc_agent_sessions (id, agent_id),
   FOREIGN KEY (agent_version_id, agent_id) REFERENCES acc_agent_versions (id, agent_id),
   UNIQUE (id, agent_id),
   CHECK ((status = 'running') = (completed_at IS NULL)),
   CHECK (completed_at IS NULL OR completed_at >= started_at),
-  CHECK ((entity_type IS NULL) = (entity_id IS NULL))
+  CHECK ((entity_type IS NULL) = (entity_id IS NULL)),
+  -- Coleta Nivel A (somente-leitura do n8n): NENHUM texto livre ate existir politica de sanitizacao de resumos
+  CONSTRAINT ck_acc_agent_runs_level_a_no_text CHECK (
+    source NOT LIKE 'n8n.collector%' OR (input_summary IS NULL AND output_summary IS NULL AND error_message IS NULL))
 );
 CREATE UNIQUE INDEX ux_acc_agent_runs_key ON acc_agent_runs (agent_id, run_key) WHERE run_key IS NOT NULL;
 CREATE INDEX ix_acc_agent_runs_agent ON acc_agent_runs (agent_id, started_at DESC);
@@ -141,7 +181,7 @@ CREATE TABLE acc_agent_events (
   occurred_at timestamptz NOT NULL,
   received_at timestamptz NOT NULL DEFAULT now(),
   -- payload especifico e LIMITADO; nunca texto de mensagens (usar message_ref) nem segredos
-  payload jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (pg_column_size(payload) <= 16384),
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (pg_column_size(payload) <= 16384 AND NOT acc_jsonb_has_forbidden_keys(payload)),
   FOREIGN KEY (agent_version_id, agent_id) REFERENCES acc_agent_versions (id, agent_id),
   FOREIGN KEY (session_id, agent_id) REFERENCES acc_agent_sessions (id, agent_id),
   FOREIGN KEY (run_id, agent_id) REFERENCES acc_agent_runs (id, agent_id),

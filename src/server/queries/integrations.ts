@@ -1,3 +1,4 @@
+import { DIRECTORY_KINDS } from '../../domain/data-sources.ts';
 import type { Queryable } from '../auth/db.ts';
 
 export interface IntegrationListItem {
@@ -13,17 +14,20 @@ export interface IntegrationListItem {
   lastHealth: { status: string; checkedAt: string } | null;
 }
 
-export async function listIntegrations(db: Queryable): Promise<IntegrationListItem[]> {
+/** `access.directory` (permissao directory:read): sem ela, entidades de diretorio de pessoas nem entram na contagem. */
+export async function listIntegrations(db: Queryable, access: { directory: boolean }): Promise<IntegrationListItem[]> {
   const { rows } = await db.query(
     `SELECT i.id, i.code, i.name, i.integration_type, i.status, i.environment,
             (SELECT count(*) FROM acc_tools t WHERE t.integration_id = i.id) AS tool_count,
-            (SELECT count(*) FROM acc_integration_entities e WHERE e.integration_id = i.id) AS catalog_count,
+            (SELECT count(*) FROM acc_integration_entities e WHERE e.integration_id = i.id
+                AND ($1::boolean OR NOT (e.entity_kind = ANY($2::text[])))) AS catalog_count,
             COALESCE((SELECT jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name, 'criticality', ai.criticality, 'required', ai.required)
                                         ORDER BY a.name)
                         FROM acc_agent_integrations ai JOIN acc_agents a ON a.id = ai.agent_id
                        WHERE ai.integration_id = i.id AND a.status <> 'archived'), '[]'::jsonb) AS agents
        FROM acc_integrations i
       ORDER BY i.code, i.environment`,
+    [access.directory === true, [...DIRECTORY_KINDS]],
   );
   return rows.map((r) => ({
     id: String(r.id), code: String(r.code), name: String(r.name), integrationType: String(r.integration_type),

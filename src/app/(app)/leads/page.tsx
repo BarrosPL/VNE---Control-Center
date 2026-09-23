@@ -3,6 +3,7 @@ import { EntityName } from '../../../components/entity-name.tsx';
 import { Badge, EmptyState, Forbidden, PageHeader, Table, Td, Th } from '../../../components/ui.tsx';
 import { KIND, LEAD_DATA_INTEGRATION } from '../../../domain/data-sources.ts';
 import { formatDateTime, relativeAge } from '../../../domain/labels.ts';
+import { can } from '../../../domain/rbac.ts';
 import { getDb } from '../../../server/db.ts';
 import { checkPermission } from '../../../server/guards.ts';
 import { resolveEntities } from '../../../server/catalog/resolver.ts';
@@ -11,7 +12,7 @@ import { listLeads } from '../../../server/queries/leads.ts';
 export const dynamic = 'force-dynamic';
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
-  const { allowed } = await checkPermission('entities:read');
+  const { user, allowed } = await checkPermission('entities:read');
   if (!allowed) return <Forbidden permission="entities:read" />;
   const sp = await searchParams;
   const q = typeof sp.q === 'string' ? sp.q : '';
@@ -20,7 +21,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   // nomes de pipeline/etapa via catalogo generico: UMA consulta em lote para a pagina inteira
   const catalog = await resolveEntities(getDb(), LEAD_DATA_INTEGRATION, items.flatMap((i) => [
     { kind: KIND.pipeline, id: i.pipelineId }, { kind: KIND.status, id: i.statusId },
-  ]));
+  ]), { directory: can(user.role, 'directory:read') });
   const link = (p: number) => `/leads?${new URLSearchParams({ ...(q ? { q } : {}), page: String(p) })}`;
 
   return (

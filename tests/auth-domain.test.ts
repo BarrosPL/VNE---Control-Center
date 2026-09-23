@@ -37,6 +37,15 @@ describe('RBAC', () => {
     for (const role of ['specialist', 'manager', 'admin']) expect(can(role, 'conversations:read')).toBe(true);
   });
 
+  it('directory:read (nomes de pessoas do diretorio): viewer NAO; specialist, manager e admin sim', () => {
+    expect(can('viewer', 'directory:read')).toBe(false);
+    for (const role of ['specialist', 'manager', 'admin']) expect(can(role, 'directory:read'), role).toBe(true);
+    expect(can(undefined, 'directory:read')).toBe(false);
+    expect(can('root', 'directory:read')).toBe(false);
+    // pipeline/status continuam visiveis ao viewer (entities:read), so o diretorio de pessoas e restrito
+    expect(can('viewer', 'entities:read')).toBe(true);
+  });
+
   it('fail closed: papel desconhecido, nulo ou permissao inexistente => negado', () => {
     expect(can('root', 'agents:read')).toBe(false);
     expect(can(undefined, 'agents:read')).toBe(false);

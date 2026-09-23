@@ -145,8 +145,8 @@ Role da aplicação: `acc_event_types` só leitura; `acc_agent_events` só `SELE
 
 ## 8. Testes
 
-Suíte completa em PostgreSQL 17.10 descartável, todas verdes: **72 unitários** (RBAC, contrato de telemetria, inventário n8n, origem/redirects, registry v2,
-guardrails estáticos de migrations, compatibilidade com Node type-stripping), **108 de banco** (auth, registry v2, catálogo, telemetria, consultas, Lead 360),
+Suíte completa em PostgreSQL 17.10 descartável, todas verdes: **74 unitários** (RBAC, contrato de telemetria, inventário n8n, origem/redirects, registry v2,
+guardrails estáticos de migrations, compatibilidade com Node type-stripping), **182 de banco** (auth, registry v2, catálogo, telemetria, consultas, Lead 360),
 **23 de migrations** (apply/rollback/idempotência/hardening/role), **build** e **28 verificações ponta a ponta** (smoke: proxy/login sem loop, RBAC, telas novas).
 Bugs reais encontrados pelos testes durante o desenvolvimento e corrigidos: alias de colunas na UNION do timeline; limite negativo; **cursor de paginação perdia eventos
 por truncar microssegundos**; filtro de URL malformado causava 500; sintaxe TS incompatível com o Node dos scripts; teste instável por relógio.
@@ -194,3 +194,14 @@ Verificação após cada etapa: `db:migrate:verify`, contagem de tabelas, `db:re
 4. Repositório: onde hospedar (organização/nome) para ativar o CI? Posso preparar `git init` e o primeiro commit, mas não publico sem sua decisão.
 5. Nível de instrumentação da 4B: A (coleta somente-leitura) apenas, ou também planejar B (emissão explícita no workflow, que exige alterar os workflows dos agentes com aprovação própria)?
 6. Revisão com o responsável dos avisos das 3 tools e das capabilities inferidas antes de tratarmos o registry como oficial.
+
+## Adendo — hardening final antes de produção (sem alterar produção nem n8n)
+
+Correções pedidas na auditoria; produção segue na migration 0004 e **nada foi aplicado**.
+
+1. **Anti-PII no banco (0007).** A documentação dizia "no banco e no contrato", mas o banco só limitava o tamanho do JSON. Agora há CHECKs com `acc_jsonb_has_forbidden_keys` (payload/metadata) e `acc_text_looks_personal` (textos livres). Coleta Nível A: `input_summary`, `output_summary` e `error_message` sempre NULL (`source` `n8n.collector`); o coletor grava só `error_code`. Ver D-023 e `13_TELEMETRY_CONTRACT.md`.
+2. **Observação x política (0005).** Guarda equivalente em `acc_agent_integrations` (`observed_*` x `criticality, required, configuration`); guarda de `acc_agent_tools` ampliada para TODAS as colunas `observed_*` (`observed_state, observed_at, observed_source, absent_since`). Ver D-024.
+3. **Privacidade do catálogo.** Permissão `directory:read` (specialist, manager, admin; viewer não). Entidades `user` só saem do backend para quem a tem (resolvedor, lista, contagens e relatório de lacunas). Ver D-025.
+4. **Documentação.** D-003 corrigido (`ALTER TABLE ... ADD` aditivo é permitido; proibido o destrutivo); `11_COMO_RODAR.md` registra que o registry v2 depende da 0005.
+
+As migrations 0005 e 0007 foram editadas no lugar por nunca terem sido aplicadas (D-026). Suíte após o hardening: **74 unitários, 182 de banco, 23 de migrations, build e 29 verificações de smoke**, todos verdes (incluindo: bateria SQL x Zod de chaves proibidas, CHECKs de PII/Nível A, pares observação x política em tools e integrações, viewer sem nomes de usuário em Lead 360, lista, catálogo e contagem de integrações).
