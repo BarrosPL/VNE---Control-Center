@@ -21,7 +21,14 @@
     "db:admin:create": "node --env-file=.env.local scripts/create-admin.mjs",
     "test:smoke": "node scripts/smoke-app.mjs",
     "db:registry:preview": "node --env-file=.env.local scripts/seed-registry.mjs preview",
-    "db:registry:apply": "node --env-file=.env.local scripts/seed-registry.mjs apply"
+    "db:registry:apply": "node --env-file=.env.local scripts/seed-registry.mjs apply",
+    "db:catalog:preview": "node --env-file=.env.local scripts/import-catalog.mjs preview",
+    "db:catalog:apply": "node --env-file=.env.local scripts/import-catalog.mjs apply",
+    "db:catalog:gaps": "node --env-file=.env.local scripts/import-catalog.mjs gaps",
+    "inventory:agents": "node --env-file=.env.admin scripts/inventory-agents.mjs",
+    "demo": "node scripts/demo.mjs",
+    "db:synthetic": "node --env-file=.env.local scripts/seed-synthetic-telemetry.mjs",
+    "rehearse:prod": "node --env-file=.env.local scripts/rehearse-prod.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.0",
@@ -42,7 +49,7 @@
     "@types/pg": "^8.15.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "embedded-postgres": "^18.4.0-beta.17",
+    "embedded-postgres": "17.10.0-beta.17",
     "prettier": "^3.9.8",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.9.0",

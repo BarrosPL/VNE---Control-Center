@@ -21,6 +21,9 @@ describe('migrations: guardrails estaticos', () => {
       '0002_seed_vne_organization',
       '0003_auth',
       '0004_audit_log',
+      '0005_registry_observed_state_and_version_seal',
+      '0006_integration_catalog',
+      '0007_agent_telemetry',
     ]);
   });
 
@@ -41,11 +44,26 @@ describe('migrations: guardrails estaticos', () => {
     );
   });
 
-  it('migrations up sao aditivas: sem DROP/TRUNCATE/ALTER/DELETE', () => {
+  it('migrations up sao aditivas: sem DROP/TRUNCATE/DELETE; ALTER TABLE so ADD em tabelas acc_*', () => {
     for (const m of migrations) {
       const sql = stripComments(m.up);
-      expect(sql, m.id).not.toMatch(/^\s*(DROP|TRUNCATE|DELETE\s+FROM|ALTER\s+TABLE)\b/im);
+      expect(sql, m.id).not.toMatch(/^\s*(DROP|TRUNCATE|DELETE\s+FROM)\b/im);
+      // cada comando ALTER TABLE: alvo acc_* e SOMENTE clausulas ADD (nada de DROP/RENAME/ALTER COLUMN/TYPE/SET)
+      for (const stmt of sql.split(';').map((x) => x.trim()).filter((x) => /^ALTER\s+TABLE\b/i.test(x))) {
+        expect(stmt, `${m.id}: ${stmt.slice(0, 60)}`).toMatch(/^ALTER\s+TABLE\s+acc_[a-z_]+\s+ADD\s/i);
+        const clauses = stmt.replace(/^ALTER\s+TABLE\s+acc_[a-z_]+\s+/i, '');
+        expect(clauses, m.id).not.toMatch(/\b(DROP|RENAME|ALTER\s+COLUMN|SET\s+(NOT\s+NULL|DEFAULT|DATA)|TYPE)\b/i);
+      }
+      // UPDATE em migration (ex.: backfill) so em tabelas acc_*
+      for (const m2 of sql.matchAll(/^\s*UPDATE\s+([a-z0-9_.]+)/gim)) expect(m2[1], m.id).toMatch(/^acc_/);
     }
+  });
+
+  it('todo rollback de migration com colunas/dados sensiveis tem guarda propria ou lista tabelas', () => {
+    const m5 = migrations.find((m: { id: string }) => m.id.startsWith('0005'));
+    expect(m5.down).toMatch(/acc\.force/); // guarda SQL com --force explicito
+    const m7 = migrations.find((m: { id: string }) => m.id.startsWith('0007'));
+    expect(m7.ignoreRows).toEqual(['acc_event_types']);
   });
 
   it('nenhuma migration referencia tabelas vne_* nem tabelas do n8n', () => {

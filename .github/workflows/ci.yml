@@ -1,0 +1,87 @@
+name: CI
+
+# Somente verificacao. NAO faz deploy, NAO usa segredos e NAO acessa nenhum banco real:
+# todos os testes de banco sobem um PostgreSQL 17.10 DESCARTAVEL (embedded-postgres, mesma versao da producao).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  NEXT_TELEMETRY_DISABLED: '1'
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+jobs:
+  static:
+    name: Typecheck + testes unitarios
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Nenhum arquivo de credencial versionado
+        run: |
+          if git ls-files | grep -E '(^|/)(\.env($|\.)|\.admin-credentials)' | grep -v '\.env\.example$'; then
+            echo "::error::arquivo de credencial versionado"; exit 1
+          fi
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Testes unitarios (RBAC, contrato, guardrails de migrations, inventario)
+        run: npm test
+
+  database:
+    name: Testes de banco + migrations (PostgreSQL 17 descartavel)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Testes de banco (auth, registro, catalogo, telemetria, consultas, leads)
+        run: npm run test:db
+      - name: Testes de migrations (apply, rollback, idempotencia, hardening, role da aplicacao)
+        run: npm run test:migration:db
+
+  e2e:
+    name: Build + smoke test (app ponta a ponta)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Smoke test
+        run: npm run test:smoke
+
+  ci-ok:
+    name: CI ok
+    if: always()
+    needs: [static, database, e2e]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Exigir todos os jobs verdes (usar como check obrigatorio na protecao de branch)
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "::error::algum job falhou ou foi cancelado"; exit 1
+          fi

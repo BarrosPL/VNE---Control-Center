@@ -10,6 +10,9 @@ import { join } from 'node:path';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { applyAppRole } from './lib/app-role.mjs';
+import { loadMigrations } from './lib/migrations.mjs';
+
+const N = loadMigrations(fileURLToPath(new URL('../migrations/', import.meta.url))).length; // total de migrations
 
 const PORT = await new Promise((resolve, reject) => {
   const srv = createServer();
@@ -43,7 +46,8 @@ const FOUNDATION = [
 ].map((t) => `acc_${t}`);
 
 const AUTH_AUDIT = ['acc_user_credentials', 'acc_sessions', 'acc_login_attempts', 'acc_audit_log'];
-const ALL_TABLES = [...FOUNDATION, ...AUTH_AUDIT];
+const CATALOG_TELEMETRY = ['acc_integration_entities', 'acc_event_types', 'acc_agent_sessions', 'acc_agent_runs', 'acc_agent_events'];
+const ALL_TABLES = [...FOUNDATION, ...AUTH_AUDIT, ...CATALOG_TELEMETRY];
 
 let passed = 0;
 const check = async (name, fn) => {
@@ -87,7 +91,7 @@ try {
     assert.equal(await tableCount('acc\\_%'), 0);
   });
 
-  await check('apply cria as 13 tabelas + auth + audit + acc_migrations', async () => {
+  await check('apply cria fundacao + auth + audit + catalogo + telemetria + acc_migrations', async () => {
     const r = run('apply');
     assert.equal(r.status, 0, r.stdout + r.stderr);
     for (const t of ALL_TABLES) assert.equal(await tableCount(t), 1, `falta ${t}`);
@@ -103,7 +107,7 @@ try {
   await check('apply e idempotente (nada pendente na 2a execucao)', async () => {
     const r = run('apply');
     assert.equal(r.status, 0, r.stdout + r.stderr);
-    assert.equal((await q(`SELECT count(*)::int n FROM acc_migrations`)).rows[0].n, 4);
+    assert.equal((await q(`SELECT count(*)::int n FROM acc_migrations`)).rows[0].n, N);
   });
 
   await check('seed cria somente a organizacao VNE', async () => {
@@ -179,6 +183,16 @@ try {
   });
 
   await check('rollback do seed e atomico: falha se a organizacao esta referenciada', async () => {
+    // migrations posteriores ao seed, da mais recente para a mais antiga
+    assert.equal(run('down').status, 0); // 0007 telemetria (vazia; tipos de evento sao referencia)
+    assert.equal(run('down').status, 0); // 0006 catalogo (vazio)
+    // 0005 tem guarda SQL: ha versoes seladas (criadas pelos testes) => recusa sem --force
+    const refused = run('down');
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stdout, /Rollback de 0005 recusado/);
+    assert.equal((await q(`SELECT count(*)::int n FROM acc_migrations`)).rows[0].n, N - 2);
+    const forced = run('down', '--force');
+    assert.equal(forced.status, 0, forced.stdout + forced.stderr);
     assert.equal(run('down').status, 0); // 0004 audit (vazia)
     assert.equal(run('down').status, 0); // 0003 auth (vazia)
     const r = run('down'); // 0002 seed: org referenciada por agentes de teste
@@ -212,7 +226,7 @@ try {
     const r = run('apply');
     assert.equal(r.status, 0, r.stdout + r.stderr);
     for (const t of ALL_TABLES) assert.equal(await tableCount(t), 1, t);
-    assert.equal((await q(`SELECT count(*)::int n FROM acc_migrations`)).rows[0].n, 4);
+    assert.equal((await q(`SELECT count(*)::int n FROM acc_migrations`)).rows[0].n, N);
   });
 
   await check('hardening tambem vale apos reapply', async () => {
@@ -284,7 +298,7 @@ try {
 
   await check('rollback continua funcionando com o role da aplicacao existente', async () => {
     await q(`DELETE FROM acc_users`);
-    for (let i = 0; i < 4; i++) assert.equal(run('down').status, 0, `down #${i + 1}`);
+    for (let i = 0; i < N; i++) assert.equal(run('down', '--force').status, 0, `down #${i + 1}`); // --force: 0005 guarda versoes seladas
     assert.equal(await tableCount('acc\_%'), 1 /* acc_migrations */);
   });
 

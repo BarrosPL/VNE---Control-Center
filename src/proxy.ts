@@ -1,14 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { absoluteUrl } from './lib/origin.ts';
 
-// Checagem OTIMISTA (somente presenca do cookie) para redirecionar cedo.
-// A validacao real da sessao e a autorizacao acontecem em src/server/guards.ts.
+// Checagem OTIMISTA e sem estado: so evita renderizar paginas protegidas quando nao ha cookie algum.
+// A PRESENCA do cookie nunca e tratada como autenticacao: quem valida a sessao e o servidor
+// (src/server/guards.ts) e, por isso, /login nunca redireciona com base no cookie — isso criaria o
+// loop /login -> / -> /login quando o cookie esta invalido, expirado ou revogado.
 export function proxy(request: NextRequest) {
-  const hasCookie = request.cookies.has('acc_session');
   const { pathname } = request.nextUrl;
-  if (pathname === '/login') {
-    return hasCookie ? NextResponse.redirect(new URL('/', request.url)) : NextResponse.next();
+  if (pathname === '/login') return NextResponse.next();
+  if (!request.cookies.has('acc_session')) {
+    return NextResponse.redirect(absoluteUrl('/login', request.headers, request.nextUrl.origin));
   }
-  if (!hasCookie) return NextResponse.redirect(new URL('/login', request.url));
   return NextResponse.next();
 }
 

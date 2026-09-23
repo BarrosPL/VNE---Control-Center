@@ -21,7 +21,10 @@ export const getSession = cache(async (): Promise<(SessionUser & { sessionId: st
 /** Data Access Layer: TODA pagina/acao protegida chama isto (o proxy e apenas otimista). */
 export async function requireUser(): Promise<SessionUser & { sessionId: string }> {
   const session = await getSession();
-  if (!session) redirect('/login');
+  if (!session) {
+    // cookie presente mas invalido/expirado/revogado: passa pela rota que APAGA o cookie (evita loop)
+    redirect((await readSessionToken()) ? '/session/expired' : '/login');
+  }
   return session;
 }
 

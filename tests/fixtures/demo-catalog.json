@@ -1,0 +1,12 @@
+{
+  "integration": "kommo",
+  "source": "manual",
+  "complete_kinds": ["pipeline", "status"],
+  "entities": [
+    { "kind": "pipeline", "id": 9907372, "name": "Funil de Demonstração" },
+    { "kind": "status", "id": 76077492, "name": "Novo contato (demo)", "parent": { "kind": "pipeline", "id": 9907372 } },
+    { "kind": "status", "id": 76077496, "name": "Em qualificação (demo)", "parent": { "kind": "pipeline", "id": 9907372 } },
+    { "kind": "user", "id": 444, "name": "Atendente Demo A" },
+    { "kind": "user", "id": 555, "name": "Atendente Demo B" }
+  ]
+}

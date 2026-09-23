@@ -1,4 +1,7 @@
+import { EntityName } from './entity-name.tsx';
 import { Badge } from './ui.tsx';
+import { KIND } from '../domain/data-sources.ts';
+import type { CatalogMap } from '../server/catalog/resolver.ts';
 import { ATTACHMENT_LABEL, AUTHOR_LABEL, channelLabel, eventLabel, formatDateTime } from '../domain/labels.ts';
 import type { EventItem, MessageItem, TimelineItem } from '../server/queries/leads.ts';
 
@@ -38,7 +41,7 @@ function MessageRow({ m }: { m: MessageItem }) {
   );
 }
 
-function EventRow({ e }: { e: EventItem }) {
+function EventRow({ e, catalog }: { e: EventItem; catalog: CatalogMap | undefined }) {
   const moved = e.previousStatusId || e.previousPipelineId;
   return (
     <li className="flex justify-center">
@@ -50,12 +53,12 @@ function EventRow({ e }: { e: EventItem }) {
         </div>
         {e.eventType === 'lead_status_changed' && (
           <p className="mt-1">
-            Etapa: {moved ? `${e.previousPipelineId ?? '—'}/${e.previousStatusId ?? '—'}` : '—'} →{' '}
-            {e.pipelineId ?? '—'}/{e.statusId ?? '—'}
+            Etapa: {moved ? <><EntityName map={catalog} kind={KIND.pipeline} id={e.previousPipelineId} />/<EntityName map={catalog} kind={KIND.status} id={e.previousStatusId} /></> : '—'} →{' '}
+            <EntityName map={catalog} kind={KIND.pipeline} id={e.pipelineId} />/<EntityName map={catalog} kind={KIND.status} id={e.statusId} />
           </p>
         )}
         {e.eventType === 'lead_responsible_changed' && e.responsibleUserId && (
-          <p className="mt-1">Novo responsável (usuário Kommo): {e.responsibleUserId}</p>
+          <p className="mt-1">Novo responsável: <EntityName map={catalog} kind={KIND.user} id={e.responsibleUserId} /></p>
         )}
         {e.taskText && <p className="mt-1 whitespace-pre-wrap break-words">Tarefa: {e.taskText}</p>}
       </div>
@@ -63,11 +66,11 @@ function EventRow({ e }: { e: EventItem }) {
   );
 }
 
-export function Timeline({ items }: { items: TimelineItem[] }) {
+export function Timeline({ items, catalog }: { items: TimelineItem[]; catalog?: CatalogMap }) {
   return (
     <ol className="space-y-2" aria-label="Linha do tempo do lead">
       {items.map((it) =>
-        it.kind === 'message' ? <MessageRow key={`m${it.ref}`} m={it} /> : <EventRow key={`e${it.ref}`} e={it} />,
+        it.kind === 'message' ? <MessageRow key={`m${it.ref}`} m={it} /> : <EventRow key={`e${it.ref}`} e={it} catalog={catalog} />,
       )}
     </ol>
   );

@@ -1,103 +1,472 @@
 {
+  "schema": 2,
   "organization": "vne",
-  "source": "fase0-inventario-2026-09-23",
+  "source": "fase3.1-inventario-2026-09-23",
   "integrations": [
-    { "code": "kommo", "name": "Kommo CRM", "integration_type": "crm",
-      "metadata": { "host": "vocenaeuropa.kommo.com",
+    {
+      "code": "kommo",
+      "name": "Kommo CRM",
+      "integration_type": "crm",
+      "metadata": {
+        "host": "vocenaeuropa.kommo.com",
         "ingest_workflows": [
-          { "id": "zwGbOPvFlkJ9vO7I", "name": "VNE - Eventos CRM Kommo", "webhook": "kommo-eventos-crm" },
-          { "id": "swEkCwoS56t8R7e7", "name": "VNE - Histórico de Conversas Kommo", "webhook": "kommo-historico-mensagens" }
-        ] } },
-    { "code": "postgres", "name": "PostgreSQL (EasyPanel)", "integration_type": "database",
-      "metadata": { "note": "Mesmo banco do n8n; tabelas vne_* (dados) e acc_* (Control Center)." } },
-    { "code": "n8n", "name": "n8n", "integration_type": "orchestrator", "metadata": {} },
-    { "code": "openai", "name": "OpenAI", "integration_type": "llm", "metadata": {} },
-    { "code": "google_calendar", "name": "Google Calendar", "integration_type": "calendar", "metadata": {} }
+          {
+            "id": "zwGbOPvFlkJ9vO7I",
+            "name": "VNE - Eventos CRM Kommo",
+            "webhook": "kommo-eventos-crm"
+          },
+          {
+            "id": "swEkCwoS56t8R7e7",
+            "name": "VNE - Histórico de Conversas Kommo",
+            "webhook": "kommo-historico-mensagens"
+          }
+        ]
+      }
+    },
+    {
+      "code": "postgres",
+      "name": "PostgreSQL (EasyPanel)",
+      "integration_type": "database",
+      "metadata": {
+        "note": "Mesmo banco do n8n; tabelas vne_* (dados) e acc_* (Control Center)."
+      }
+    },
+    {
+      "code": "n8n",
+      "name": "n8n",
+      "integration_type": "orchestrator",
+      "metadata": {}
+    },
+    {
+      "code": "openai",
+      "name": "OpenAI",
+      "integration_type": "llm",
+      "metadata": {}
+    },
+    {
+      "code": "google_calendar",
+      "name": "Google Calendar",
+      "integration_type": "calendar",
+      "metadata": {}
+    }
   ],
   "capabilities": [
-    { "code": "qualify_lead", "name": "Qualificar lead", "risk_level": "medium",
-      "description": "Triagem e enriquecimento do lead no CRM. Inferido do inventário; revisar com o responsável." },
-    { "code": "schedule_meeting", "name": "Agendar reunião", "risk_level": "high",
-      "description": "Reservar, reagendar e cancelar reuniões. Inferido do inventário; revisar com o responsável." },
-    { "code": "reengage_lead", "name": "Reengajar lead", "risk_level": "medium",
-      "description": "Recuperação de leads inativos. Inferido do inventário; revisar com o responsável." }
+    {
+      "code": "qualify_lead",
+      "name": "Qualificar lead",
+      "risk_level": "medium",
+      "description": "Triagem e enriquecimento do lead no CRM. Inferido do inventário; revisar com o responsável."
+    },
+    {
+      "code": "schedule_meeting",
+      "name": "Agendar reunião",
+      "risk_level": "high",
+      "description": "Reservar, reagendar e cancelar reuniões. Inferido do inventário; revisar com o responsável."
+    },
+    {
+      "code": "reengage_lead",
+      "name": "Reengajar lead",
+      "risk_level": "medium",
+      "description": "Recuperação de leads inativos. Inferido do inventário; revisar com o responsável."
+    }
   ],
   "tools": [
-    { "code": "reservar_e_criar_reuniao", "name": "Reservar e criar reunião", "tool_type": "n8n_workflow",
-      "mutation_level": "write", "risk_level": "high", "integration": "n8n",
-      "external_reference": "n8n:workflow:vLZwa92qql9MOuUK", "metadata": {} },
-    { "code": "reagendar_reuniao_seguro", "name": "Reagendar reunião", "tool_type": "n8n_workflow",
-      "mutation_level": "write", "risk_level": "high", "integration": "n8n",
-      "external_reference": "n8n:workflow:P2fajqlxgeKG9QTX", "metadata": {} },
-    { "code": "cancelar_reuniao_seguro", "name": "Cancelar reunião", "tool_type": "n8n_workflow",
-      "mutation_level": "write", "risk_level": "high", "integration": "n8n",
-      "external_reference": "n8n:workflow:JAwcteOmCLTCSr2t", "metadata": { "original_name": "cancelar_reunião_seguro" } },
-    { "code": "escalar_passagem_diogo", "name": "Escalar passagem (Diogo)", "tool_type": "n8n_workflow",
-      "mutation_level": "write", "risk_level": "high", "integration": "n8n",
+    {
+      "code": "reservar_e_criar_reuniao",
+      "name": "Reservar e criar reunião",
+      "tool_type": "n8n_workflow",
+      "mutation_level": "write",
+      "risk_level": "high",
+      "integration": "n8n",
+      "external_reference": "n8n:workflow:vLZwa92qql9MOuUK",
+      "metadata": {}
+    },
+    {
+      "code": "reagendar_reuniao_seguro",
+      "name": "Reagendar reunião",
+      "tool_type": "n8n_workflow",
+      "mutation_level": "write",
+      "risk_level": "high",
+      "integration": "n8n",
+      "external_reference": "n8n:workflow:P2fajqlxgeKG9QTX",
+      "metadata": {}
+    },
+    {
+      "code": "cancelar_reuniao_seguro",
+      "name": "Cancelar reunião",
+      "tool_type": "n8n_workflow",
+      "mutation_level": "write",
+      "risk_level": "high",
+      "integration": "n8n",
+      "external_reference": "n8n:workflow:JAwcteOmCLTCSr2t",
+      "metadata": {
+        "original_name": "cancelar_reunião_seguro"
+      }
+    },
+    {
+      "code": "escalar_passagem_diogo",
+      "name": "Escalar passagem (Diogo)",
+      "tool_type": "n8n_workflow",
+      "mutation_level": "write",
+      "risk_level": "high",
+      "integration": "n8n",
       "external_reference": "n8n:workflow:XKjC2JcHb5SVXpWI",
-      "metadata": { "warnings": ["O workflow alvo (Tool escalar_passagem_diogo (NessoViaggi)) está INATIVO no n8n; a chamada tende a falhar."] } },
-    { "code": "preencher_tag_interesse", "name": "Preencher tag de interesse", "tool_type": "http_request",
-      "mutation_level": "write", "risk_level": "medium", "integration": "kommo", "metadata": {} },
-    { "code": "preencher_nome_lead", "name": "Preencher nome do lead", "tool_type": "http_request",
-      "mutation_level": "write", "risk_level": "medium", "integration": "kommo", "metadata": {} },
-    { "code": "salvar_numero_requerentes", "name": "Salvar número de requerentes", "tool_type": "http_request",
-      "mutation_level": "write", "risk_level": "medium", "integration": "kommo", "metadata": {} },
-    { "code": "salvar_plano_confirmado", "name": "Salvar plano confirmado", "tool_type": "http_request",
-      "mutation_level": "write", "risk_level": "medium", "integration": "kommo", "metadata": {} },
-    { "code": "salvar_valor_apresentado", "name": "Salvar valor apresentado", "tool_type": "http_request",
-      "mutation_level": "write", "risk_level": "medium", "integration": "kommo", "metadata": {} },
-    { "code": "salvar_motivo_recusa", "name": "Salvar motivo de recusa", "tool_type": "http_request",
-      "mutation_level": "write", "risk_level": "medium", "integration": "kommo", "metadata": {} },
-    { "code": "mover_para_follow_up", "name": "Mover para follow-up", "tool_type": "http_request",
-      "mutation_level": "read", "risk_level": "low", "integration": "kommo",
-      "metadata": { "warnings": ["O nome sugere mover o lead, mas o node faz GET em /api/v4/leads/{id} (somente leitura). Revisar o workflow."] } },
-    { "code": "finalizar_triagem", "name": "Finalizar triagem", "tool_type": "postgres",
-      "mutation_level": "write", "risk_level": "medium", "integration": "postgres",
-      "metadata": { "operation": "upsert" } },
-    { "code": "consultar_agendamentos_postgres", "name": "Consultar agendamentos", "tool_type": "postgres",
-      "mutation_level": "write", "risk_level": "medium", "integration": "postgres",
-      "metadata": { "warnings": ["O nome sugere leitura, mas o SQL contém UPDATE. Tratada como mutável até revisão."] } },
-    { "code": "consultar_agenda", "name": "Consultar agenda", "tool_type": "google_calendar",
-      "mutation_level": "read", "risk_level": "low", "integration": "google_calendar", "metadata": {} }
+      "metadata": {
+        "warnings": [
+          "O workflow alvo (Tool escalar_passagem_diogo (NessoViaggi)) está INATIVO no n8n; a chamada tende a falhar."
+        ]
+      }
+    },
+    {
+      "code": "preencher_tag_interesse",
+      "name": "Preencher tag de interesse",
+      "tool_type": "http_request",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "kommo",
+      "metadata": {}
+    },
+    {
+      "code": "preencher_nome_lead",
+      "name": "Preencher nome do lead",
+      "tool_type": "http_request",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "kommo",
+      "metadata": {}
+    },
+    {
+      "code": "salvar_numero_requerentes",
+      "name": "Salvar número de requerentes",
+      "tool_type": "http_request",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "kommo",
+      "metadata": {}
+    },
+    {
+      "code": "salvar_plano_confirmado",
+      "name": "Salvar plano confirmado",
+      "tool_type": "http_request",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "kommo",
+      "metadata": {}
+    },
+    {
+      "code": "salvar_valor_apresentado",
+      "name": "Salvar valor apresentado",
+      "tool_type": "http_request",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "kommo",
+      "metadata": {}
+    },
+    {
+      "code": "salvar_motivo_recusa",
+      "name": "Salvar motivo de recusa",
+      "tool_type": "http_request",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "kommo",
+      "metadata": {}
+    },
+    {
+      "code": "mover_para_follow_up",
+      "name": "Mover para follow-up",
+      "tool_type": "http_request",
+      "mutation_level": "read",
+      "risk_level": "low",
+      "integration": "kommo",
+      "metadata": {
+        "warnings": [
+          "O nome sugere mover o lead, mas o node faz GET em /api/v4/leads/{id} (somente leitura). Revisar o workflow."
+        ]
+      }
+    },
+    {
+      "code": "finalizar_triagem",
+      "name": "Finalizar triagem",
+      "tool_type": "postgres",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "postgres",
+      "metadata": {
+        "operation": "upsert"
+      }
+    },
+    {
+      "code": "consultar_agendamentos_postgres",
+      "name": "Consultar agendamentos",
+      "tool_type": "postgres",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "postgres",
+      "metadata": {
+        "warnings": [
+          "O nome sugere leitura, mas o SQL contém UPDATE. Tratada como mutável até revisão."
+        ]
+      }
+    },
+    {
+      "code": "consultar_agenda",
+      "name": "Consultar agenda",
+      "tool_type": "google_calendar",
+      "mutation_level": "read",
+      "risk_level": "low",
+      "integration": "google_calendar",
+      "metadata": {}
+    },
+    {
+      "code": "salvar_plano_recomendado",
+      "name": "Salvar plano recomendado",
+      "tool_type": "http_request",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "kommo",
+      "metadata": {
+        "observed": {
+          "method": "PATCH",
+          "host": "vocenaeuropa.kommo.com"
+        },
+        "note": "Observada somente no workflow candidato (nao em producao)."
+      }
+    },
+    {
+      "code": "salvar_quantidade_requerentes",
+      "name": "Salvar quantidade de requerentes",
+      "tool_type": "http_request",
+      "mutation_level": "write",
+      "risk_level": "medium",
+      "integration": "kommo",
+      "metadata": {
+        "observed": {
+          "method": "PATCH",
+          "host": "vocenaeuropa.kommo.com"
+        },
+        "note": "Observada somente no workflow candidato (nao em producao)."
+      }
+    }
   ],
   "agents": [
-    { "slug": "sophia", "name": "Sophia", "agent_type": "conversational",
+    {
+      "slug": "sophia",
+      "name": "Sophia",
+      "agent_type": "conversational",
       "description": "Agente de atendimentos. Cadastrado a partir do inventário do workflow n8n; descrição a ser revisada pelo responsável.",
-      "status": "active", "operational_mode": "active",
-      "metadata": { "workflows": [{ "id": "uhnA44V465M38Hhk", "role": "agent" }], "auxiliary_models": ["gpt-4o-mini"] },
-      "version": { "version": "baseline-2026-09-23", "environment": "production", "status": "active",
-        "model_provider": "openai", "model_name": "gpt-4.1-mini", "workflow_external_id": "uhnA44V465M38Hhk",
-        "changelog": "Baseline inventariado na Fase 0 (n8n versionCounter 764)." },
-      "capabilities": ["qualify_lead", "schedule_meeting"],
-      "tools": ["reservar_e_criar_reuniao", "reagendar_reuniao_seguro", "cancelar_reuniao_seguro", "escalar_passagem_diogo",
-        "preencher_tag_interesse", "preencher_nome_lead", "salvar_numero_requerentes", "salvar_plano_confirmado",
-        "salvar_valor_apresentado", "salvar_motivo_recusa", "mover_para_follow_up", "finalizar_triagem",
-        "consultar_agendamentos_postgres", "consultar_agenda"],
+      "status": "active",
+      "operational_mode": "active",
+      "metadata": {
+        "workflows": [
+          {
+            "id": "uhnA44V465M38Hhk",
+            "role": "agent"
+          },
+          {
+            "id": "UeUgrQqNOqHpcqzB",
+            "role": "candidate"
+          }
+        ],
+        "auxiliary_models": [
+          "gpt-4o-mini"
+        ]
+      },
+      "capabilities": [
+        "qualify_lead",
+        "schedule_meeting"
+      ],
       "integrations": [
-        { "code": "kommo", "criticality": "critical", "required": true },
-        { "code": "postgres", "criticality": "critical", "required": true },
-        { "code": "openai", "criticality": "critical", "required": true },
-        { "code": "n8n", "criticality": "critical", "required": true },
-        { "code": "google_calendar", "criticality": "high", "required": false }
-      ] },
-    { "slug": "higor", "name": "Higor", "agent_type": "conversational",
+        {
+          "code": "kommo",
+          "criticality": "critical",
+          "required": true
+        },
+        {
+          "code": "postgres",
+          "criticality": "critical",
+          "required": true
+        },
+        {
+          "code": "openai",
+          "criticality": "critical",
+          "required": true
+        },
+        {
+          "code": "n8n",
+          "criticality": "critical",
+          "required": true
+        },
+        {
+          "code": "google_calendar",
+          "criticality": "high",
+          "required": false
+        }
+      ],
+      "versions": [
+        {
+          "version": "baseline-2026-09-23",
+          "environment": "production",
+          "status": "active",
+          "model_provider": "openai",
+          "model_name": "gpt-4.1-mini",
+          "workflow_external_id": "uhnA44V465M38Hhk",
+          "source_revision": "n8n:uhnA44V465M38Hhk@764#6ef37f30-745c-4448-9355-87a24700c911",
+          "prompt_hash": "78c33f478b092f1d421eced6e1a247f84a1460eafe09924dd17e1dea15274532",
+          "config_hash": "82e99bdcf15b3fe72b47e23b48ca7c43e361489b7cefec2b5f7918dfcef58e48",
+          "changelog": "Baseline inventariado na Fase 0 (n8n versionCounter 764).",
+          "tools": [
+            "cancelar_reuniao_seguro",
+            "consultar_agenda",
+            "consultar_agendamentos_postgres",
+            "escalar_passagem_diogo",
+            "finalizar_triagem",
+            "mover_para_follow_up",
+            "preencher_nome_lead",
+            "preencher_tag_interesse",
+            "reagendar_reuniao_seguro",
+            "reservar_e_criar_reuniao",
+            "salvar_motivo_recusa",
+            "salvar_numero_requerentes",
+            "salvar_plano_confirmado",
+            "salvar_valor_apresentado"
+          ],
+          "disabled_tools": [],
+          "integrations": [
+            "google_calendar",
+            "kommo",
+            "n8n",
+            "openai",
+            "postgres"
+          ]
+        },
+        {
+          "version": "em-atualizacao-2026-09-23",
+          "environment": "development",
+          "status": "candidate",
+          "model_provider": "openai",
+          "model_name": "gpt-4.1-mini",
+          "workflow_external_id": "UeUgrQqNOqHpcqzB",
+          "source_revision": "n8n:UeUgrQqNOqHpcqzB@10#f9fe929a-3438-4d3a-bd36-c738ebd14093",
+          "prompt_hash": "13a1ab256f30d917ed015a57e6f96602af3f85a8b1d64436a15eb9217ddceaec",
+          "config_hash": "9a68b55642a0b5accfe0c3288eedfa166a113d81621d2813a81258be3ccc6a75",
+          "changelog": "Rascunho INATIVO no n8n (nao esta em producao). Diferencas vs. producao: remove escalar_passagem_diogo, finalizar_triagem (node fica desconectado), salvar_numero_requerentes e salvar_plano_confirmado; adiciona salvar_plano_recomendado e salvar_quantidade_requerentes.",
+          "tools": [
+            "cancelar_reuniao_seguro",
+            "consultar_agenda",
+            "consultar_agendamentos_postgres",
+            "mover_para_follow_up",
+            "preencher_nome_lead",
+            "preencher_tag_interesse",
+            "reagendar_reuniao_seguro",
+            "reservar_e_criar_reuniao",
+            "salvar_motivo_recusa",
+            "salvar_plano_recomendado",
+            "salvar_quantidade_requerentes",
+            "salvar_valor_apresentado"
+          ],
+          "disabled_tools": [],
+          "integrations": [
+            "google_calendar",
+            "kommo",
+            "n8n",
+            "openai",
+            "postgres"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "higor",
+      "name": "Higor",
+      "agent_type": "conversational",
       "description": "Agente de reaquecimento (recovery) de leads. Cadastrado a partir do inventário dos workflows n8n; descrição a ser revisada pelo responsável.",
-      "status": "active", "operational_mode": "active",
-      "metadata": { "workflows": [{ "id": "5KTLuyhMJRxC6nRv", "role": "agent" }, { "id": "raWoQAC3lhkghb6N", "role": "dispatcher" }],
-        "state_tables": ["vne_recovery_higor"], "auxiliary_models": ["gpt-4o-mini"] },
-      "version": { "version": "baseline-2026-09-23", "environment": "production", "status": "active",
-        "model_provider": "openai", "model_name": "gpt-4.1-mini", "workflow_external_id": "5KTLuyhMJRxC6nRv",
-        "changelog": "Baseline inventariado na Fase 0 (n8n versionCounter 589; dispatcher em workflow separado)." },
-      "capabilities": ["reengage_lead", "schedule_meeting"],
-      "tools": ["reservar_e_criar_reuniao", "reagendar_reuniao_seguro", "cancelar_reuniao_seguro", "escalar_passagem_diogo",
-        "preencher_tag_interesse", "preencher_nome_lead", "salvar_numero_requerentes", "salvar_plano_confirmado",
-        "salvar_valor_apresentado", "salvar_motivo_recusa", "consultar_agendamentos_postgres", "consultar_agenda"],
+      "status": "active",
+      "operational_mode": "active",
+      "metadata": {
+        "workflows": [
+          {
+            "id": "5KTLuyhMJRxC6nRv",
+            "role": "agent"
+          },
+          {
+            "id": "raWoQAC3lhkghb6N",
+            "role": "dispatcher"
+          }
+        ],
+        "state_tables": [
+          "vne_recovery_higor"
+        ],
+        "auxiliary_models": [
+          "gpt-4o-mini"
+        ]
+      },
+      "capabilities": [
+        "reengage_lead",
+        "schedule_meeting"
+      ],
       "integrations": [
-        { "code": "kommo", "criticality": "critical", "required": true },
-        { "code": "postgres", "criticality": "critical", "required": true },
-        { "code": "openai", "criticality": "critical", "required": true },
-        { "code": "n8n", "criticality": "critical", "required": true },
-        { "code": "google_calendar", "criticality": "high", "required": false }
-      ] }
+        {
+          "code": "kommo",
+          "criticality": "critical",
+          "required": true
+        },
+        {
+          "code": "postgres",
+          "criticality": "critical",
+          "required": true
+        },
+        {
+          "code": "openai",
+          "criticality": "critical",
+          "required": true
+        },
+        {
+          "code": "n8n",
+          "criticality": "critical",
+          "required": true
+        },
+        {
+          "code": "google_calendar",
+          "criticality": "high",
+          "required": false
+        }
+      ],
+      "versions": [
+        {
+          "version": "baseline-2026-09-23",
+          "environment": "production",
+          "status": "active",
+          "model_provider": "openai",
+          "model_name": "gpt-4.1-mini",
+          "workflow_external_id": "5KTLuyhMJRxC6nRv",
+          "source_revision": "n8n:5KTLuyhMJRxC6nRv@589#202c8082-20cc-4f41-a6e3-a2185b06898e",
+          "prompt_hash": "2bfb9815c32b55b48da0fff69eda4873a896f823030e0468b5540aef026d65ee",
+          "config_hash": "85a48f43963c2052567eec0d3934f8d8ced2b05d5f8033e0a8007d475220bbb7",
+          "changelog": "Baseline inventariado na Fase 0 (n8n versionCounter 589; dispatcher em workflow separado).",
+          "tools": [
+            "cancelar_reuniao_seguro",
+            "consultar_agenda",
+            "consultar_agendamentos_postgres",
+            "escalar_passagem_diogo",
+            "preencher_nome_lead",
+            "preencher_tag_interesse",
+            "reagendar_reuniao_seguro",
+            "reservar_e_criar_reuniao",
+            "salvar_motivo_recusa",
+            "salvar_numero_requerentes",
+            "salvar_plano_confirmado",
+            "salvar_valor_apresentado"
+          ],
+          "disabled_tools": [],
+          "integrations": [
+            "google_calendar",
+            "kommo",
+            "n8n",
+            "openai",
+            "postgres"
+          ]
+        }
+      ]
+    }
   ]
 }

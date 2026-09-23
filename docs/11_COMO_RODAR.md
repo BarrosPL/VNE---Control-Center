@@ -63,3 +63,27 @@ npm run db:registry:apply     # aplica (idempotente; não sobrescreve estados de
 Edite `registry/vne.registry.json` para cadastrar/atualizar agentes, tools e integrações. Em destino
 remoto exige `--confirm-host=<host>` e aprovação prévia. Requer as migrations 0003/0004 aplicadas
 (a importação grava auditoria).
+
+## Demonstracao local (sem tocar em producao)
+
+```powershell
+npm run demo    # banco descartavel + todas as migrations + registro + catalogo ficticio + telemetria sintetica; abre em http://127.0.0.1:3000
+```
+
+Credenciais fictícias impressas no terminal (valem só nesse banco). Ctrl+C encerra e apaga tudo.
+
+## Inventario, catalogo, telemetria e ensaio
+
+```powershell
+npm run inventory:agents          # le workflows do n8n (SOMENTE LEITURA) e gera docs/inventory/agents-<data>.json (hashes, sem prompts)
+npm run db:catalog:gaps           # IDs do Kommo observados sem nome no catalogo
+npm run db:catalog:preview -- --file=registry/catalogs/kommo.json
+npm run db:catalog:apply   -- --file=registry/catalogs/kommo.json
+npm run db:synthetic              # telemetria sintetica (recusa qualquer banco que nao seja local)
+npm run rehearse:prod             # ENSAIO local: copia (leitura) o registro de producao, aplica migrations e importa o registry
+```
+
+## CI
+
+`.github/workflows/ci.yml` roda typecheck, testes unitarios, testes de banco, testes de migrations, build e smoke, sem deploy e sem segredos.
+`npm run test:all` executa localmente o mesmo conjunto.

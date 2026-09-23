@@ -1,8 +1,11 @@
 import Link from 'next/link';
+import { EntityName } from '../../../components/entity-name.tsx';
 import { Badge, EmptyState, Forbidden, PageHeader, Table, Td, Th } from '../../../components/ui.tsx';
+import { KIND, LEAD_DATA_INTEGRATION } from '../../../domain/data-sources.ts';
 import { formatDateTime, relativeAge } from '../../../domain/labels.ts';
 import { getDb } from '../../../server/db.ts';
 import { checkPermission } from '../../../server/guards.ts';
+import { resolveEntities } from '../../../server/catalog/resolver.ts';
 import { listLeads } from '../../../server/queries/leads.ts';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +17,10 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const q = typeof sp.q === 'string' ? sp.q : '';
   const { items, total, page, pageSize } = await listLeads(getDb(), { q, page: Number(sp.page) });
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  // nomes de pipeline/etapa via catalogo generico: UMA consulta em lote para a pagina inteira
+  const catalog = await resolveEntities(getDb(), LEAD_DATA_INTEGRATION, items.flatMap((i) => [
+    { kind: KIND.pipeline, id: i.pipelineId }, { kind: KIND.status, id: i.statusId },
+  ]));
   const link = (p: number) => `/leads?${new URLSearchParams({ ...(q ? { q } : {}), page: String(p) })}`;
 
   return (
@@ -38,7 +45,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           <Table>
             <thead>
               <tr>
-                <Th>Lead</Th><Th>Pipeline / etapa</Th><Th>Mensagens (↓ / ↑)</Th><Th>Última msg do cliente</Th><Th>Última atividade</Th><Th>Último agente</Th>
+                <Th>Lead</Th><Th>Pipeline / etapa</Th><Th>Mensagens (↓ / ↑)</Th><Th>Última msg do cliente</Th><Th>Última atividade</Th><Th>Último workflow registrado</Th>
               </tr>
             </thead>
             <tbody>
@@ -54,9 +61,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   </Td>
                   <Td>
                     {l.pipelineId || l.statusId ? (
-                      <span className="text-xs">{l.pipelineId ?? '—'} / {l.statusId ?? '—'}</span>
+                      <span className="text-xs"><EntityName map={catalog} kind={KIND.pipeline} id={l.pipelineId} /> / <EntityName map={catalog} kind={KIND.status} id={l.statusId} /></span>
                     ) : (
-                      <span className="text-xs text-neutral-400" title="Ainda sem evento CRM registrado">—</span>
+                      <Badge tone="warn" title="Ainda não há evento CRM registrado para este lead">Não sincronizado</Badge>
                     )}
                   </Td>
                   <Td>{l.totalIncoming} / {l.totalOutgoing}</Td>

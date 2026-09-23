@@ -114,3 +114,24 @@ contém apenas `ACC_APP_DATABASE_URL` (role limitado) e `SESSION_SECRET`.
 - Controle IA/humano, timeline dos agentes e requests internos aparecem como "Indisponivel" ate as Fases 4-6.
 - Desempenho medido em producao: lista 285 ms; cabecalho 98 ms; timeline de 44 itens 52 ms.
 - Bugs encontrados por teste durante o desenvolvimento: alias de colunas na UNION (visao so-eventos) e normalizacao de limite negativo; ambos com cobertura.
+
+## D-016 - Cookie nao e autenticacao (Fase 3.1)
+O proxy nunca redireciona /login com base na presenca do cookie (isso criava o loop /login -> / -> /login com cookie invalido, expirado ou revogado). A pagina /login valida a sessao no servidor; sessao invalida com cookie passa por /session/expired, que apaga o cookie. Redirecionamentos usam a origem visivel (Host/X-Forwarded-* validados em src/lib/origin.ts), nunca o host interno.
+
+## D-017 - Terminologia honesta no Lead 360 (Fase 3.1)
+vne_janela_meta.ultimo_workflow e informativo e nao prova autoria: rotulo "Ultimo workflow registrado". vne_leads_snapshot.price aparece como "Preco do lead no Kommo" (nao e necessariamente o Valor Apresentado). Pipeline/etapa ausentes: "Nao sincronizado".
+
+## D-018 - Estado observado x politica (migration 0005)
+Registry descreve o OBSERVADO no workflow (tools, integracoes, modelo, hashes, revisao de origem); a POLITICA (permission_mode, status, modo operacional) e do Control Center e nao e sobrescrita. Tool retirada do workflow vira observed_state=absent (com absent_since) sem apagar vinculo, historico ou politica. Trigger no banco impede alterar estado observado e politica no mesmo UPDATE.
+
+## D-019 - Versao usada e imutavel (migration 0005)
+config_hash, source_revision, config_snapshot e sealed_at. Uma versao e selada ao ser liberada (active/deprecated/archived) ou ao ser referenciada por sessao/run/evento (funcao SECURITY DEFINER minima). Selada: configuracao, hash, modelo, workflow e changelog nao mudam (trigger); so o ciclo de vida (active <-> deprecated, archived) e permitido. Mudou o workflow => NOVA versao (o importador recusa reescrever). Procedencia de versao legada pode ser completada uma unica vez. Rollback da 0005 e recusado sem --force.
+
+## D-020 - Catalogo generico de integracoes (migration 0006)
+acc_integration_entities resolve IDs externos em nomes sem hardcode no frontend; resolucao em lote; fallback "ID n"; entidade removida fica inativa. Nenhum nome e inventado: o mapeamento real do Kommo e dado a ser fornecido.
+
+## D-021 - Telemetria de agentes agnostica (migration 0007)
+Sessoes/runs/eventos genericos (entity_type/entity_id, lead_id como atalho), idempotentes, append-only, sem PII (mensagens por referencia), taxonomia em tabela. Nao se assume que tool calls do n8n sejam interceptaveis: hoje so runs/ciclo de vida por versao do workflow sao observaveis (execution_entity), sem ler execution_data. Detalhes em docs/13_TELEMETRY_CONTRACT.md.
+
+## D-022 - Testes no mesmo Postgres da producao e CI sem deploy
+embedded-postgres fixado em 17.10.0-beta.17 (producao roda 17.10). CI em .github/workflows/ci.yml: static, database, e2e e agregador; sem segredos, sem deploy. Lição: codigo novo que le schema novo exige migrations antes do deploy; servidor de desenvolvimento ligado a producao so apos as migrations (npm run demo para ver o schema novo localmente).

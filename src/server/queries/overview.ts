@@ -29,7 +29,8 @@ export async function getOverview(db: Queryable): Promise<Overview> {
     db.query(
       `SELECT count(DISTINCT a.id)::int AS n
          FROM acc_agents a JOIN acc_agent_tools t ON t.agent_id = a.id JOIN acc_tools x ON x.id = t.tool_id
-        WHERE a.status <> 'archived' AND jsonb_array_length(COALESCE(x.metadata->'warnings', '[]'::jsonb)) > 0`,
+        WHERE a.status <> 'archived' AND t.observed_state = 'present'
+          AND jsonb_array_length(COALESCE(x.metadata->'warnings', '[]'::jsonb)) > 0`,
     ),
   ]);
   const byMode = groupCount(modes.rows as { k: unknown; n: unknown }[]);

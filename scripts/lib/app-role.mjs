@@ -13,7 +13,12 @@ export const VNE_READ_TABLES = [
 const APP_EXCLUDED = new Set(['acc_migrations']);
 
 /** Tabelas append-only: a aplicacao so insere e le (alem do trigger de imutabilidade). */
-const APPEND_ONLY = new Set(['acc_audit_log']);
+const APPEND_ONLY = new Set(['acc_audit_log', 'acc_agent_events']);
+
+/** Dados de referencia: a aplicacao so le (mudam por migration). */
+const READ_ONLY = new Set(['acc_event_types']);
+
+const privsFor = (t) => (APPEND_ONLY.has(t) ? 'SELECT, INSERT' : READ_ONLY.has(t) ? 'SELECT' : 'SELECT, INSERT, UPDATE');
 
 const ROLE_RE = /^[a-z][a-z0-9_]{2,40}$/;
 
@@ -31,7 +36,7 @@ export function describeGrants(accTables) {
     settings: ['statement_timeout=15s', 'idle_in_transaction_session_timeout=30s'],
     acc: accTables
       .filter((t) => !APP_EXCLUDED.has(t))
-      .map((t) => `${t}: ${APPEND_ONLY.has(t) ? 'SELECT, INSERT' : 'SELECT, INSERT, UPDATE'}`),
+      .map((t) => `${t}: ${privsFor(t)}`),
     vne: VNE_READ_TABLES.map((t) => `${t}: SELECT`),
     denied: ['DELETE em acc_*', 'CREATE em public', 'tabelas do n8n (workflow/credentials/execution)', 'acc_migrations'],
   };
@@ -72,7 +77,7 @@ export async function applyAppRole(client, { roleName, database }) {
     `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'acc\\_%' ORDER BY 1`,
   )).rows.map((r) => r.tablename).filter((t) => !APP_EXCLUDED.has(t));
   for (const t of acc) {
-    const privs = APPEND_ONLY.has(t) ? 'SELECT, INSERT' : 'SELECT, INSERT, UPDATE';
+    const privs = privsFor(t);
     await q(`REVOKE ALL ON TABLE public.${ident(t)} FROM ${ident(roleName)}`);
     await q(`GRANT ${privs} ON TABLE public.${ident(t)} TO ${ident(roleName)}`);
   }

@@ -23,6 +23,9 @@ export function loadMigrations(dir) {
     mig.checksum = checksum(mig.up);
     mig.tables = createdTables(mig.up);
     mig.allowData = /^--\s*@allow-data\b/m.test(mig.down);
+    // tabelas de REFERENCIA semeadas pela propria migration (ex.: tipos de evento): nao contam no guard de rollback
+    mig.ignoreRows = (/^--\s*@ignore-rows:\s*(.+)$/m.exec(mig.down)?.[1] ?? '')
+      .split(',').map((t) => t.trim()).filter(Boolean);
   }
   return list;
 }

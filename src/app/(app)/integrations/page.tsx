@@ -21,7 +21,7 @@ export default async function IntegrationsPage() {
       ) : (
         <Table>
           <thead>
-            <tr><Th>Integração</Th><Th>Tipo</Th><Th>Ambiente</Th><Th>Estado</Th><Th>Última checagem</Th><Th>Tools</Th><Th>Agentes dependentes</Th></tr>
+            <tr><Th>Integração</Th><Th>Tipo</Th><Th>Ambiente</Th><Th>Estado</Th><Th>Última checagem</Th><Th>Tools</Th><Th>Catálogo</Th><Th>Agentes dependentes</Th></tr>
           </thead>
           <tbody>
             {items.map((i) => (
@@ -32,6 +32,11 @@ export default async function IntegrationsPage() {
                 <Td><Badge tone={STATUS_LABEL[i.status]?.tone}>{STATUS_LABEL[i.status]?.label ?? i.status}</Badge></Td>
                 <Td><span className="text-neutral-500" title="Health checks chegam na Fase 8">Não monitorada</span></Td>
                 <Td>{i.toolCount}</Td>
+                <Td>
+                  <Link href={`/integrations/${i.code}/catalog`} className="text-sky-800 underline">
+                    {i.catalogCount > 0 ? `${i.catalogCount} entidade(s)` : 'sem nomes'}
+                  </Link>
+                </Td>
                 <Td>
                   {i.agents.length === 0 ? '—' : (
                     <ul className="space-y-1">

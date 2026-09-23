@@ -82,7 +82,11 @@ async function apply(migrations) {
     await hardenTables(client, [TRACKING]);
     const applied = await appliedMap(client);
     assertNoDrift(migrations, applied);
-    for (const m of migrations.filter((x) => !applied.has(x.id))) {
+    // --to=<prefixo>: aplica somente ate essa migration (ex.: --to=0004). Util para aplicacao em etapas e ensaios.
+    const upTo = typeof flags.to === 'string' ? flags.to : null;
+    if (upTo && !migrations.some((x) => x.id.startsWith(upTo))) throw new Error(`--to=${upTo} nao corresponde a nenhuma migration`);
+    const limit = upTo ? migrations.findIndex((x) => x.id.startsWith(upTo)) : migrations.length - 1;
+    for (const m of migrations.filter((x, i) => i <= limit && !applied.has(x.id))) {
       await client.query('BEGIN');
       try {
         await client.query(m.up);
@@ -143,7 +147,7 @@ async function down(migrations) {
     if (!last) return log('info', 'nothing_to_rollback');
     const m = migrations.find((x) => x.id === last);
     if (!m.allowData && !flags.force) {
-      for (const t of m.tables) {
+      for (const t of m.tables.filter((x) => !m.ignoreRows.includes(x))) {
         const { rows } = await client.query(`SELECT count(*)::int AS n FROM ${t}`);
         if (rows[0].n > 0) {
           throw new Error(`Rollback recusado: ${t} contem ${rows[0].n} linha(s). Use --force com aprovacao.`);
@@ -152,6 +156,8 @@ async function down(migrations) {
     }
     await client.query('BEGIN');
     try {
+      // --force chega as guardas SQL das migrations (ex.: 0005) via variavel de sessao transacional
+      if (flags.force) await client.query("SET LOCAL acc.force = 'on'");
       await client.query(m.down);
       await client.query(`DELETE FROM ${TRACKING} WHERE id = $1`, [m.id]);
       await client.query('COMMIT');

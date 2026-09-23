@@ -101,3 +101,41 @@ export const eventLabel = (t: string) => EVENT_LABEL[t] ?? t;
 export const ATTACHMENT_LABEL: Record<string, string> = {
   picture: 'imagem', voice: 'áudio', file: 'arquivo', sticker: 'figurinha', video: 'vídeo',
 };
+
+/** Estado OBSERVADO no workflow (fato lido do n8n) — distinto da politica do Control Center. */
+export const OBSERVED_LABEL: Record<string, { label: string; tone: Tone; hint: string }> = {
+  present: { label: 'Presente', tone: 'ok', hint: 'Observada no workflow em uso.' },
+  absent: { label: 'Ausente', tone: 'warn', hint: 'Foi retirada do workflow; o vínculo e a política foram preservados.' },
+  disabled_in_workflow: { label: 'Desabilitada no n8n', tone: 'warn', hint: 'O node existe, mas está desabilitado no workflow.' },
+  unknown: { label: 'Não observada', tone: 'neutral', hint: 'Ainda não houve observação do workflow.' },
+};
+
+export const RUN_STATUS_LABEL: Record<string, { label: string; tone: Tone }> = {
+  running: { label: 'Em execução', tone: 'info' },
+  succeeded: { label: 'Sucesso', tone: 'ok' },
+  failed: { label: 'Falhou', tone: 'danger' },
+  cancelled: { label: 'Cancelada', tone: 'neutral' },
+  timed_out: { label: 'Tempo esgotado', tone: 'danger' },
+};
+
+export const SESSION_STATUS_LABEL: Record<string, { label: string; tone: Tone }> = {
+  active: { label: 'Ativa', tone: 'ok' },
+  ended: { label: 'Encerrada', tone: 'neutral' },
+  expired: { label: 'Expirada', tone: 'neutral' },
+};
+
+export const EVENT_TYPE_LABEL: Record<string, string> = {
+  MESSAGE_RECEIVED: 'Mensagem recebida', RUN_STARTED: 'Execução iniciada', TOOL_CALLED: 'Tool chamada',
+  TOOL_SUCCEEDED: 'Tool concluída', TOOL_FAILED: 'Tool falhou', MESSAGE_SENT: 'Mensagem enviada',
+  HUMAN_REQUESTED: 'Ajuda humana solicitada', RUN_SUCCEEDED: 'Execução concluída', RUN_FAILED: 'Execução falhou', ERROR: 'Erro',
+};
+export const eventTypeLabel = (t: string) => EVENT_TYPE_LABEL[t] ?? t;
+
+export const LEVEL_TONE: Record<string, Tone> = { info: 'neutral', warn: 'warn', error: 'danger' };
+
+export function formatDuration(ms: number | null | undefined): string {
+  if (ms == null) return '—';
+  if (ms < 1000) return `${ms} ms`;
+  const s = ms / 1000;
+  return s < 60 ? `${s.toFixed(1)} s` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`;
+}

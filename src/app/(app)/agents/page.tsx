@@ -22,7 +22,7 @@ export default async function AgentsPage() {
         <Table>
           <thead>
             <tr>
-              <Th>Agente</Th><Th>Tipo</Th><Th>Status</Th><Th>Modo</Th><Th>Versão ativa</Th><Th>Modelo</Th><Th>Tools</Th><Th>Alertas</Th>
+              <Th>Agente</Th><Th>Tipo</Th><Th>Status</Th><Th>Modo</Th><Th>Versão ativa</Th><Th>Modelo</Th><Th>Tools em uso</Th><Th>Alertas</Th>
             </tr>
           </thead>
           <tbody>
@@ -40,7 +40,12 @@ export default async function AgentsPage() {
                   <Td><Badge tone={mode?.tone} title={mode?.hint}>{mode?.label ?? a.operationalMode}</Badge></Td>
                   <Td>{a.activeVersion ?? <span className="text-neutral-400">—</span>}</Td>
                   <Td>{a.modelName ?? <span className="text-neutral-400">—</span>}</Td>
-                  <Td>{a.toolCount}</Td>
+                  <Td>
+                    {a.toolCount}
+                    {a.absentToolCount > 0 && (
+                      <div className="mt-1"><Badge tone="warn" title="Vinculadas, mas retiradas do workflow">{a.absentToolCount} ausente(s)</Badge></div>
+                    )}
+                  </Td>
                   <Td>{a.warningCount > 0 ? <Badge tone="warn">{a.warningCount} tool(s) com aviso</Badge> : <span className="text-neutral-400">—</span>}</Td>
                 </tr>
               );

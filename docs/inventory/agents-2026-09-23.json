@@ -1,0 +1,749 @@
+{
+  "generatedAt": "2026-09-23T17:08:40.541Z",
+  "source": {
+    "host": "xb6zov.easypanel.host",
+    "readOnly": true
+  },
+  "registry": "fase0-inventario-2026-09-23",
+  "workflows": [
+    {
+      "workflow": {
+        "id": "5KTLuyhMJRxC6nRv",
+        "name": "VNE - Agente de Reaquecimento Higor",
+        "active": true,
+        "versionId": "202c8082-20cc-4f41-a6e3-a2185b06898e",
+        "versionCounter": 589,
+        "activeVersionId": "202c8082-20cc-4f41-a6e3-a2185b06898e",
+        "updatedAt": "2026-09-22T16:23:54.565Z",
+        "nodeCount": 52
+      },
+      "agents": [
+        {
+          "node": "Agente IA Higor",
+          "disabled": false,
+          "promptHash": "2bfb9815c32b55b48da0fff69eda4873a896f823030e0468b5540aef026d65ee",
+          "models": [
+            {
+              "node": "OpenAI Chat Model",
+              "type": "lmChatOpenAi",
+              "model": "gpt-4.1-mini",
+              "disabled": false
+            }
+          ],
+          "memory": [
+            {
+              "node": "Postgres Chat Memory",
+              "type": "memoryPostgresChat",
+              "disabled": false
+            }
+          ],
+          "tools": [
+            {
+              "node": "cancelar_reunião_seguro",
+              "code": "cancelar_reuniao_seguro",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "JAwcteOmCLTCSr2t",
+                "name": "VNE - Cancelar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "consultar_agenda",
+              "code": "consultar_agenda",
+              "kind": "google_calendar",
+              "disabled": false,
+              "calendar": {
+                "resource": null,
+                "operation": "getAll"
+              }
+            },
+            {
+              "node": "consultar_agendamentos_postgres",
+              "code": "consultar_agendamentos_postgres",
+              "kind": "postgres",
+              "disabled": false,
+              "sql": {
+                "operation": "executeQuery",
+                "verbs": [
+                  "SELECT",
+                  "UPDATE"
+                ]
+              }
+            },
+            {
+              "node": "escalar_passagem_diogo",
+              "code": "escalar_passagem_diogo",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "XKjC2JcHb5SVXpWI",
+                "name": "Tool escalar_passagem_diogo (NessoViaggi)",
+                "active": false
+              }
+            },
+            {
+              "node": "preencher_nome_lead",
+              "code": "preencher_nome_lead",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "preencher_tag_interesse",
+              "code": "preencher_tag_interesse",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "reagendar_reuniao_seguro",
+              "code": "reagendar_reuniao_seguro",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "P2fajqlxgeKG9QTX",
+                "name": "VNE - Tool Reagendar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "reservar_e_criar_reuniao",
+              "code": "reservar_e_criar_reuniao",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "vLZwa92qql9MOuUK",
+                "name": "VNE - Tool Reservar e Criar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "salvar_motivo_recusa",
+              "code": "salvar_motivo_recusa",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_numero_requerentes",
+              "code": "salvar_numero_requerentes",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_plano_confirmado",
+              "code": "salvar_plano_confirmado",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_valor_apresentado",
+              "code": "salvar_valor_apresentado",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            }
+          ],
+          "toolSetHash": "a717ff91ca60c77f4c7045275952f47c1364c42e592522d8edfbb21b742c786e",
+          "configHash": "85a48f43963c2052567eec0d3934f8d8ced2b05d5f8033e0a8007d475220bbb7"
+        }
+      ],
+      "orphanTools": []
+    },
+    {
+      "workflow": {
+        "id": "raWoQAC3lhkghb6N",
+        "name": "VNE - Dispatcher Recovery Higor",
+        "active": true,
+        "versionId": "ad46d657-22b7-4e7c-a723-7a0518b726fd",
+        "versionCounter": 206,
+        "activeVersionId": "ad46d657-22b7-4e7c-a723-7a0518b726fd",
+        "updatedAt": "2026-09-22T19:48:31.494Z",
+        "nodeCount": 25
+      },
+      "agents": [],
+      "orphanTools": []
+    },
+    {
+      "workflow": {
+        "id": "uhnA44V465M38Hhk",
+        "name": "VNE - Sophia Agente de Atendimentos",
+        "active": true,
+        "versionId": "6ef37f30-745c-4448-9355-87a24700c911",
+        "versionCounter": 764,
+        "activeVersionId": "6ef37f30-745c-4448-9355-87a24700c911",
+        "updatedAt": "2026-09-22T20:29:52.502Z",
+        "nodeCount": 60
+      },
+      "agents": [
+        {
+          "node": "Agente IA Sophia",
+          "disabled": false,
+          "promptHash": "78c33f478b092f1d421eced6e1a247f84a1460eafe09924dd17e1dea15274532",
+          "models": [
+            {
+              "node": "OpenAI Chat Model",
+              "type": "lmChatOpenAi",
+              "model": "gpt-4.1-mini",
+              "disabled": false
+            }
+          ],
+          "memory": [
+            {
+              "node": "Postgres Chat Memory",
+              "type": "memoryPostgresChat",
+              "disabled": false
+            }
+          ],
+          "tools": [
+            {
+              "node": "cancelar_reunião_seguro",
+              "code": "cancelar_reuniao_seguro",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "JAwcteOmCLTCSr2t",
+                "name": "VNE - Cancelar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "consultar_agenda",
+              "code": "consultar_agenda",
+              "kind": "google_calendar",
+              "disabled": false,
+              "calendar": {
+                "resource": null,
+                "operation": "getAll"
+              }
+            },
+            {
+              "node": "consultar_agendamentos_postgres",
+              "code": "consultar_agendamentos_postgres",
+              "kind": "postgres",
+              "disabled": false,
+              "sql": {
+                "operation": "executeQuery",
+                "verbs": [
+                  "SELECT",
+                  "UPDATE"
+                ]
+              }
+            },
+            {
+              "node": "escalar_passagem_diogo",
+              "code": "escalar_passagem_diogo",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "XKjC2JcHb5SVXpWI",
+                "name": "Tool escalar_passagem_diogo (NessoViaggi)",
+                "active": false
+              }
+            },
+            {
+              "node": "finalizar_triagem",
+              "code": "finalizar_triagem",
+              "kind": "postgres",
+              "disabled": false,
+              "sql": {
+                "operation": "upsert",
+                "verbs": []
+              }
+            },
+            {
+              "node": "mover_para_follow_up",
+              "code": "mover_para_follow_up",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "GET",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "preencher_nome_lead",
+              "code": "preencher_nome_lead",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "preencher_tag_interesse",
+              "code": "preencher_tag_interesse",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "reagendar_reuniao_seguro",
+              "code": "reagendar_reuniao_seguro",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "P2fajqlxgeKG9QTX",
+                "name": "VNE - Tool Reagendar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "reservar_e_criar_reuniao",
+              "code": "reservar_e_criar_reuniao",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "vLZwa92qql9MOuUK",
+                "name": "VNE - Tool Reservar e Criar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "salvar_motivo_recusa",
+              "code": "salvar_motivo_recusa",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_numero_requerentes",
+              "code": "salvar_numero_requerentes",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_plano_confirmado",
+              "code": "salvar_plano_confirmado",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_valor_apresentado",
+              "code": "salvar_valor_apresentado",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            }
+          ],
+          "toolSetHash": "556964d51463cf856bbdfc85559e55d069af48ad5b594d107b5b4c359a488a71",
+          "configHash": "82e99bdcf15b3fe72b47e23b48ca7c43e361489b7cefec2b5f7918dfcef58e48"
+        }
+      ],
+      "orphanTools": []
+    }
+  ],
+  "candidates": [
+    {
+      "workflow": {
+        "id": "UeUgrQqNOqHpcqzB",
+        "name": "VNE - Sophia Agente de Atendimentos - EM ATUALIZAÇÃO",
+        "active": false,
+        "versionId": "f9fe929a-3438-4d3a-bd36-c738ebd14093",
+        "versionCounter": 10,
+        "activeVersionId": null,
+        "updatedAt": "2026-09-23T13:23:35.022Z",
+        "nodeCount": 60
+      },
+      "agents": [
+        {
+          "node": "Agente IA Sophia",
+          "disabled": false,
+          "promptHash": "13a1ab256f30d917ed015a57e6f96602af3f85a8b1d64436a15eb9217ddceaec",
+          "models": [
+            {
+              "node": "OpenAI Chat Model",
+              "type": "lmChatOpenAi",
+              "model": "gpt-4.1-mini",
+              "disabled": false
+            }
+          ],
+          "memory": [
+            {
+              "node": "Postgres Chat Memory",
+              "type": "memoryPostgresChat",
+              "disabled": false
+            }
+          ],
+          "tools": [
+            {
+              "node": "cancelar_reuniao_seguro",
+              "code": "cancelar_reuniao_seguro",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "JAwcteOmCLTCSr2t",
+                "name": "VNE - Cancelar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "consultar_agenda",
+              "code": "consultar_agenda",
+              "kind": "google_calendar",
+              "disabled": false,
+              "calendar": {
+                "resource": null,
+                "operation": "getAll"
+              }
+            },
+            {
+              "node": "consultar_agendamentos_postgres",
+              "code": "consultar_agendamentos_postgres",
+              "kind": "postgres",
+              "disabled": false,
+              "sql": {
+                "operation": "executeQuery",
+                "verbs": [
+                  "SELECT",
+                  "UPDATE"
+                ]
+              }
+            },
+            {
+              "node": "mover_para_follow_up",
+              "code": "mover_para_follow_up",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "GET",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "preencher_nome_lead",
+              "code": "preencher_nome_lead",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "preencher_tag_interesse",
+              "code": "preencher_tag_interesse",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "reagendar_reuniao_seguro",
+              "code": "reagendar_reuniao_seguro",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "P2fajqlxgeKG9QTX",
+                "name": "VNE - Tool Reagendar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "reservar_e_criar_reuniao",
+              "code": "reservar_e_criar_reuniao",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "vLZwa92qql9MOuUK",
+                "name": "VNE - Tool Reservar e Criar Reunião",
+                "active": true
+              }
+            },
+            {
+              "node": "salvar_motivo_recusa",
+              "code": "salvar_motivo_recusa",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_plano_recomendado",
+              "code": "salvar_plano_recomendado",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_quantidade_requerentes",
+              "code": "salvar_quantidade_requerentes",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "salvar_valor_apresentado",
+              "code": "salvar_valor_apresentado",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            }
+          ],
+          "toolSetHash": "1465e9c394388c6161df93ede4b59acb0b37fdcef94c21ef0eb90c5c03c25f1e",
+          "configHash": "9a68b55642a0b5accfe0c3288eedfa166a113d81621d2813a81258be3ccc6a75"
+        }
+      ],
+      "orphanTools": [
+        {
+          "node": "finalizar_triagem",
+          "code": "finalizar_triagem",
+          "kind": "postgres",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "workflow": {
+        "id": "WNOLqsZa4zzcf5iW",
+        "name": "VNE - Sophia Agente de Atendimentos",
+        "active": false,
+        "versionId": "7beeb9bb-325d-478c-8a0c-af537573f82e",
+        "versionCounter": 2675,
+        "activeVersionId": null,
+        "updatedAt": "2026-07-22T15:52:19.130Z",
+        "nodeCount": 53
+      },
+      "agents": [
+        {
+          "node": "Agente IA Sophia",
+          "disabled": false,
+          "promptHash": "c46954518225f501c3cff52db83181bee43f3d809af133ba870cebb03fc1a41f",
+          "models": [
+            {
+              "node": "OpenAI Chat Model",
+              "type": "lmChatOpenAi",
+              "model": "gpt-4.1-mini",
+              "disabled": false
+            }
+          ],
+          "memory": [
+            {
+              "node": "Postgres Chat Memory",
+              "type": "memoryPostgresChat",
+              "disabled": false
+            }
+          ],
+          "tools": [
+            {
+              "node": "agendar_conversa_especialista",
+              "code": "agendar_conversa_especialista",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "Call 'VNE - Tool Solicitar Confirmação Interna'",
+              "code": "call_vne_tool_solicitar_confirmacao_interna",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "wFnUYQ8oTugPr9yX",
+                "name": "VNE - Tool Solicitar Confirmação Interna",
+                "active": false
+              }
+            },
+            {
+              "node": "cancelar_reaquecimento",
+              "code": "cancelar_reaquecimento",
+              "kind": "postgres",
+              "disabled": false,
+              "sql": {
+                "operation": "executeQuery",
+                "verbs": [
+                  "UPDATE"
+                ]
+              }
+            },
+            {
+              "node": "escalar_passagem_diogo",
+              "code": "escalar_passagem_diogo",
+              "kind": "n8n_workflow",
+              "disabled": false,
+              "target": {
+                "workflowId": "XKjC2JcHb5SVXpWI",
+                "name": "Tool escalar_passagem_diogo (NessoViaggi)",
+                "active": false
+              }
+            },
+            {
+              "node": "finalizar_triagem",
+              "code": "finalizar_triagem",
+              "kind": "postgres",
+              "disabled": false,
+              "sql": {
+                "operation": "upsert",
+                "verbs": []
+              }
+            },
+            {
+              "node": "marcar_sem_interesse",
+              "code": "marcar_sem_interesse",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "preencher_nome_lead",
+              "code": "preencher_nome_lead",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            },
+            {
+              "node": "preencher_tag_interesse",
+              "code": "preencher_tag_interesse",
+              "kind": "http_request",
+              "disabled": false,
+              "http": {
+                "method": "PATCH",
+                "host": "vocenaeuropa.kommo.com"
+              }
+            }
+          ],
+          "toolSetHash": "47d413d145c0c3d99f07515b5c0dc52232f27159e36e7fd6f7224aaa039d3c25",
+          "configHash": "df904da6c7494d537ad1bef44f102bbd62d17d19d6c051eddd5af945a75007e4"
+        }
+      ],
+      "orphanTools": []
+    },
+    {
+      "workflow": {
+        "id": "nPeYfKImCtlsjJu2",
+        "name": "VNE - Reaquecimento Sophia",
+        "active": false,
+        "versionId": "6227a2a9-69ac-4bf7-9fd6-81bda95aec86",
+        "versionCounter": 155,
+        "activeVersionId": null,
+        "updatedAt": "2026-07-17T13:39:20.276Z",
+        "nodeCount": 25
+      },
+      "agents": [
+        {
+          "node": "AI Agent",
+          "disabled": false,
+          "promptHash": "def99a2747aff261efde41290953f7e8d344cde6b886be64e6a4eada6d83aec3",
+          "models": [
+            {
+              "node": "OpenAI Chat Model",
+              "type": "lmChatOpenAi",
+              "model": "gpt-5-mini",
+              "disabled": false
+            }
+          ],
+          "memory": [
+            {
+              "node": "Postgres Chat Memory",
+              "type": "memoryPostgresChat",
+              "disabled": false
+            }
+          ],
+          "tools": [],
+          "toolSetHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "configHash": "8f08aeb415aa6dd74cf6cc10b73d6bb27833985ed64444dadf46a488b712d2b7"
+        }
+      ],
+      "orphanTools": []
+    }
+  ],
+  "diffs": [
+    {
+      "agent": "sophia",
+      "workflowId": "uhnA44V465M38Hhk",
+      "registryVersion": "baseline-2026-09-23",
+      "registryWorkflowRevision": null,
+      "observedVersionCounter": 764,
+      "observedVersionId": "6ef37f30-745c-4448-9355-87a24700c911",
+      "workflowActive": true,
+      "modelRegistry": "gpt-4.1-mini",
+      "modelObserved": [
+        "gpt-4.1-mini"
+      ],
+      "tools": {
+        "added": [],
+        "removed": [],
+        "disabledInWorkflow": []
+      }
+    },
+    {
+      "agent": "higor",
+      "workflowId": "5KTLuyhMJRxC6nRv",
+      "registryVersion": "baseline-2026-09-23",
+      "registryWorkflowRevision": null,
+      "observedVersionCounter": 589,
+      "observedVersionId": "202c8082-20cc-4f41-a6e3-a2185b06898e",
+      "workflowActive": true,
+      "modelRegistry": "gpt-4.1-mini",
+      "modelObserved": [
+        "gpt-4.1-mini"
+      ],
+      "tools": {
+        "added": [],
+        "removed": [],
+        "disabledInWorkflow": []
+      }
+    }
+  ]
+}
