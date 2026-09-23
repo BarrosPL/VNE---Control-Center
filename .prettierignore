@@ -1,0 +1,7 @@
+.env*
+.admin-credentials
+.local-tools
+.next
+node_modules
+docs/database-*.json
+package-lock.json
